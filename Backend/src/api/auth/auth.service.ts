@@ -37,6 +37,22 @@ export const registerUser = async (data: any) => {
     throw new ApiError(500, `Failed to create profile: ${profileError.message}`);
   }
 
+  // 3. Insert into startups table if role is startup
+  if (role === 'startup' && data.startup_profile) {
+    const { error: startupError } = await supabaseAdmin
+      .from('startups')
+      .insert({
+        id: userId,
+        ...data.startup_profile
+      });
+
+    if (startupError) {
+      // Rollback auth user and profile if startup creation fails
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new ApiError(500, `Failed to create startup profile: ${startupError.message}`);
+    }
+  }
+
   return {
     user: {
       id: userId,

@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Rocket, Briefcase, Eye, EyeOff } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { ArrowLeft, Rocket, Briefcase, Eye, EyeOff, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+// =======================
+// SCHEMAS
+// =======================
 const passwordSchema = z.string()
   .min(8, "Must be at least 8 characters")
   .max(64, "Cannot exceed 64 characters")
@@ -26,13 +29,27 @@ const companySchema = z.string()
   .max(60, "Cannot exceed 60 characters")
   .regex(/^[a-zA-Z]/, "Must start with a letter");
 
+// Step 1-4 fields
 const startupSchema = z.object({
+  // Step 1: Core Identity
   companyName: companySchema,
   industry: z.string().min(1, "Please select an industry"),
   stage: z.string().min(1, "Please select a funding stage"),
-  revenue: z.string().max(20, "Revenue input cannot exceed 20 characters").optional(),
   email: z.string().email("Invalid email address").max(100, "Email cannot exceed 100 characters"),
   password: passwordSchema,
+  // Step 2: Financials
+  currentArr: z.string().max(20).optional(),
+  lastYearRevenue: z.string().max(20).optional(),
+  revenueModel: z.string().max(500).optional(),
+  // Step 3: Funding Requirements
+  fundingSought: z.string().max(20).optional(),
+  primaryUseOfFunds: z.string().max(500).optional(),
+  previousFunding: z.string().max(20).optional(),
+  // Step 4: Custom Q&A
+  customQa: z.array(z.object({
+    key: z.string().min(1, "Question cannot be empty"),
+    value: z.string().min(1, "Answer cannot be empty")
+  })).optional()
 });
 type StartupFormValues = z.infer<typeof startupSchema>;
 
@@ -53,14 +70,30 @@ const getDeviceFingerprint = () => {
   return btoa(navigator.userAgent + window.screen.width + window.screen.height).substring(0, 32);
 };
 
+// =======================
+// MAIN COMPONENT
+// =======================
 export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<"startup" | "investor" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Wizard State
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 4;
 
   const startupForm = useForm<StartupFormValues>({
     resolver: zodResolver(startupSchema),
+    mode: "onTouched",
+    defaultValues: {
+      customQa: [] // initialize empty array for field array
+    }
+  });
+
+  const { fields: qaFields, append: appendQa, remove: removeQa } = useFieldArray({
+    control: startupForm.control,
+    name: "customQa"
   });
 
   const investorForm = useForm<InvestorFormValues>({
@@ -93,13 +126,36 @@ export default function RegisterPage() {
     }
   };
 
+  // Convert string numbers to strict numeric for backend
+  const parseNumeric = (val: string | undefined) => val ? Number(val) : undefined;
+
   const onStartupSubmit = (data: StartupFormValues) => {
-    submitToBackend({
+    // Format custom QA array into an object/record
+    const formattedQa: Record<string, string> = {};
+    if (data.customQa) {
+      data.customQa.forEach(item => {
+        formattedQa[item.key] = item.value;
+      });
+    }
+
+    const payload = {
       email: data.email,
       password: data.password,
-      full_name: data.companyName, // Map companyName to full_name for backend
-      role: "startup"
-    });
+      full_name: data.companyName,
+      role: "startup",
+      startup_profile: {
+        industry: data.industry,
+        stage: data.stage,
+        current_arr: parseNumeric(data.currentArr),
+        last_year_revenue: parseNumeric(data.lastYearRevenue),
+        revenue_model: data.revenueModel,
+        funding_sought: parseNumeric(data.fundingSought),
+        primary_use_of_funds: data.primaryUseOfFunds,
+        previous_funding: parseNumeric(data.previousFunding),
+        custom_qa: formattedQa
+      }
+    };
+    submitToBackend(payload);
   };
 
   const onInvestorSubmit = (data: InvestorFormValues) => {
@@ -111,9 +167,30 @@ export default function RegisterPage() {
     });
   };
 
+  // Step validation
+  const handleNextStep = async () => {
+    let fieldsToValidate: any = [];
+    if (currentStep === 1) {
+      fieldsToValidate = ['companyName', 'industry', 'stage', 'email', 'password'];
+    } else if (currentStep === 2) {
+      fieldsToValidate = ['currentArr', 'lastYearRevenue', 'revenueModel'];
+    } else if (currentStep === 3) {
+      fieldsToValidate = ['fundingSought', 'primaryUseOfFunds', 'previousFunding'];
+    }
+
+    const isValid = await startupForm.trigger(fieldsToValidate);
+    if (isValid) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handlePrevStep = () => setCurrentStep(prev => prev - 1);
+
+  // =======================
+  // RENDERERS
+  // =======================
   const renderRoleSelection = () => (
     <div className="grid md:grid-cols-2 gap-8">
-      {/* Startup Card */}
       <button 
         onClick={() => setRole("startup")}
         className="text-left cursor-pointer border-2 border-slate-200 dark:border-slate-800 rounded-xl p-8 hover:border-[var(--color-brand-emerald)] dark:hover:border-[var(--color-brand-emerald)] transition-all relative group bg-[var(--card-bg)] shadow-sm hover:shadow-md"
@@ -129,7 +206,6 @@ export default function RegisterPage() {
         </p>
       </button>
 
-      {/* Investor Card */}
       <button 
         onClick={() => setRole("investor")}
         className="text-left cursor-pointer border-2 border-slate-200 dark:border-slate-800 rounded-xl p-8 hover:border-[var(--color-brand-emerald)] dark:hover:border-[var(--color-brand-emerald)] transition-all relative group bg-[var(--card-bg)] shadow-sm hover:shadow-md"
@@ -147,97 +223,241 @@ export default function RegisterPage() {
     </div>
   );
 
-  const renderStartupForm = () => (
-    <div className="bg-[var(--card-bg)] py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-brand-emerald)] text-white">
-            <Rocket className="h-5 w-5" />
-          </div>
-          <h3 className="text-xl font-bold">Startup Application</h3>
-        </div>
-        <button onClick={() => setRole(null)} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
-          Change Role
-        </button>
-      </div>
+  const renderStartupForm = () => {
+    const { register, formState: { errors } } = startupForm;
 
-      <form onSubmit={startupForm.handleSubmit(onStartupSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Company Name <span className="text-red-500">*</span></label>
-            <input maxLength={60} {...startupForm.register("companyName")} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="Axiom Corp" />
-            {startupForm.formState.errors.companyName && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.companyName.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Industry / Sector <span className="text-red-500">*</span></label>
-            <select {...startupForm.register("industry")} defaultValue="" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]">
-              <option value="" disabled>Select an industry...</option>
-              <option value="fintech">FinTech</option>
-              <option value="healthtech">HealthTech</option>
-              <option value="saas">Enterprise SaaS</option>
-              <option value="ai">Artificial Intelligence</option>
-              <option value="cleantech">CleanTech</option>
-            </select>
-            {startupForm.formState.errors.industry && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.industry.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Current Stage <span className="text-red-500">*</span></label>
-            <select {...startupForm.register("stage")} defaultValue="" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]">
-              <option value="" disabled>Select funding stage...</option>
-              <option value="pre-seed">Pre-Seed</option>
-              <option value="seed">Seed</option>
-              <option value="series-a">Series A</option>
-              <option value="series-b">Series B+</option>
-            </select>
-            {startupForm.formState.errors.stage && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.stage.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Annual Revenue (ARR)</label>
-            <input 
-              maxLength={20} 
-              {...startupForm.register("revenue")} 
-              onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }}
-              type="text" 
-              className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
-              placeholder="500000" 
-            />
-            {startupForm.formState.errors.revenue && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.revenue.message}</p>}
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
-          <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Account Credentials</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1">Founder Email <span className="text-red-500">*</span></label>
-              <input maxLength={100} {...startupForm.register("email")} type="email" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="founder@company.com" />
-              {startupForm.formState.errors.email && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.email.message}</p>}
+    return (
+      <div className="bg-[var(--card-bg)] py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* Header & Role Switcher */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-brand-emerald)] text-white">
+              <Rocket className="h-5 w-5" />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Password <span className="text-red-500">*</span></label>
-              <div className="relative rounded-md shadow-sm">
-                <input 
-                  maxLength={64} 
-                  {...startupForm.register("password")} 
-                  type={showPassword ? "text" : "password"} 
-                  className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 pr-10 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
-                  placeholder="••••••••" 
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            <h3 className="text-xl font-bold">Startup Application</h3>
+          </div>
+          <button onClick={() => {setRole(null); setCurrentStep(1);}} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
+            Change Role
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-8 relative">
+          <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-200 dark:bg-slate-800">
+            <div style={{ width: `${(currentStep / totalSteps) * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[var(--color-brand-emerald)] transition-all duration-300"></div>
+          </div>
+          <div className="flex justify-between text-xs font-medium text-slate-500">
+            <span className={currentStep >= 1 ? "text-[var(--color-brand-emerald)]" : ""}>Identity</span>
+            <span className={currentStep >= 2 ? "text-[var(--color-brand-emerald)]" : ""}>Financials</span>
+            <span className={currentStep >= 3 ? "text-[var(--color-brand-emerald)]" : ""}>Funding</span>
+            <span className={currentStep >= 4 ? "text-[var(--color-brand-emerald)]" : ""}>Public Info</span>
+          </div>
+        </div>
+
+        <form onSubmit={startupForm.handleSubmit(onStartupSubmit)} className="space-y-6">
+          
+          {/* STEP 1 */}
+          <div className={currentStep === 1 ? "block animate-in fade-in duration-300" : "hidden"}>
+            <h4 className="text-lg font-semibold mb-6">1. Core Identity & Credentials</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Company Name <span className="text-red-500">*</span></label>
+                <input maxLength={60} {...register("companyName")} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="Axiom Corp" />
+                {errors.companyName && <p className="text-red-500 text-xs mt-1">{errors.companyName.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Industry / Sector <span className="text-red-500">*</span></label>
+                <select {...register("industry")} defaultValue="" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]">
+                  <option value="" disabled>Select an industry...</option>
+                  <option value="fintech">FinTech</option>
+                  <option value="healthtech">HealthTech</option>
+                  <option value="saas">Enterprise SaaS</option>
+                  <option value="ai">Artificial Intelligence</option>
+                  <option value="cleantech">CleanTech</option>
+                  <option value="other">Other</option>
+                </select>
+                {errors.industry && <p className="text-red-500 text-xs mt-1">{errors.industry.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Stage <span className="text-red-500">*</span></label>
+                <select {...register("stage")} defaultValue="" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]">
+                  <option value="" disabled>Select funding stage...</option>
+                  <option value="pre-seed">Pre-Seed</option>
+                  <option value="seed">Seed</option>
+                  <option value="series-a">Series A</option>
+                  <option value="series-b">Series B+</option>
+                </select>
+                {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage.message}</p>}
+              </div>
+              <div className="col-span-1 md:col-span-2 border-t border-slate-200 dark:border-slate-800 pt-6 mt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Founder Email <span className="text-red-500">*</span></label>
+                    <input maxLength={100} {...register("email")} type="email" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="founder@company.com" />
+                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Password <span className="text-red-500">*</span></label>
+                    <div className="relative rounded-md shadow-sm">
+                      <input 
+                        maxLength={64} 
+                        {...register("password")} 
+                        type={showPassword ? "text" : "password"} 
+                        className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 pr-10 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
+                        placeholder="••••••••" 
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </div>
+                    </div>
+                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+                  </div>
                 </div>
               </div>
-              {startupForm.formState.errors.password && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.password.message}</p>}
             </div>
           </div>
-        </div>
 
-        <button disabled={isSubmitting} type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--color-brand-emerald)] hover:bg-[var(--color-brand-emerald-hover)] transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
-          {isSubmitting ? "Submitting..." : "Submit Application"}
-        </button>
-      </form>
-    </div>
-  );
+          {/* STEP 2 */}
+          <div className={currentStep === 2 ? "block animate-in fade-in duration-300" : "hidden"}>
+            <h4 className="text-lg font-semibold mb-6">2. Financials & Revenue</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Annual Revenue (ARR)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 sm:text-sm">$</span>
+                  </div>
+                  <input maxLength={20} {...register("currentArr")} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent pl-7 pr-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="500000" />
+                </div>
+                {errors.currentArr && <p className="text-red-500 text-xs mt-1">{errors.currentArr.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Last Year's Revenue</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 sm:text-sm">$</span>
+                  </div>
+                  <input maxLength={20} {...register("lastYearRevenue")} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent pl-7 pr-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="150000" />
+                </div>
+                {errors.lastYearRevenue && <p className="text-red-500 text-xs mt-1">{errors.lastYearRevenue.message}</p>}
+              </div>
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Revenue Model / Earning Logic</label>
+                <textarea rows={3} maxLength={500} {...register("revenueModel")} className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="B2B SaaS Subscription at $99/mo per seat..." />
+                {errors.revenueModel && <p className="text-red-500 text-xs mt-1">{errors.revenueModel.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 3 */}
+          <div className={currentStep === 3 ? "block animate-in fade-in duration-300" : "hidden"}>
+            <h4 className="text-lg font-semibold mb-6">3. Funding Requirements</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Total Funding Sought</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 sm:text-sm">$</span>
+                  </div>
+                  <input maxLength={20} {...register("fundingSought")} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent pl-7 pr-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="2000000" />
+                </div>
+                {errors.fundingSought && <p className="text-red-500 text-xs mt-1">{errors.fundingSought.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Previous Funding Raised</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 sm:text-sm">$</span>
+                  </div>
+                  <input maxLength={20} {...register("previousFunding")} onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent pl-7 pr-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="500000" />
+                </div>
+                {errors.previousFunding && <p className="text-red-500 text-xs mt-1">{errors.previousFunding.message}</p>}
+              </div>
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Primary Use of Funds</label>
+                <textarea rows={3} maxLength={500} {...register("primaryUseOfFunds")} className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="60% R&D, 30% Go-to-Market, 10% Ops..." />
+                {errors.primaryUseOfFunds && <p className="text-red-500 text-xs mt-1">{errors.primaryUseOfFunds.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 4 */}
+          <div className={currentStep === 4 ? "block animate-in fade-in duration-300" : "hidden"}>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-lg font-semibold">4. Public Custom Q&A</h4>
+              <button 
+                type="button" 
+                onClick={() => appendQa({ key: "", value: "" })}
+                className="inline-flex items-center text-sm font-medium text-[var(--color-brand-emerald)] hover:text-[var(--color-brand-emerald-hover)]"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Custom Question
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-6">
+              Add specific questions and answers you want investors to see (e.g. "What is our competitive advantage?").
+            </p>
+            
+            <div className="space-y-4">
+              {qaFields.map((field, index) => (
+                <div key={field.id} className="flex items-start gap-4 p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Question (Key)</label>
+                      <input 
+                        {...register(`customQa.${index}.key` as const)} 
+                        className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
+                        placeholder="e.g. Target Audience" 
+                      />
+                      {errors.customQa?.[index]?.key && <p className="text-red-500 text-xs mt-1">{errors.customQa[index]?.key?.message}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Answer (Value)</label>
+                      <input 
+                        {...register(`customQa.${index}.value` as const)} 
+                        className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
+                        placeholder="e.g. Gen-Z Retail Investors" 
+                      />
+                      {errors.customQa?.[index]?.value && <p className="text-red-500 text-xs mt-1">{errors.customQa[index]?.value?.message}</p>}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => removeQa(index)} className="p-2 text-slate-400 hover:text-red-500 transition-colors mt-6">
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+              {qaFields.length === 0 && (
+                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                  <p className="text-sm text-slate-500">No custom questions added yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Controls */}
+          <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-800 mt-8">
+            {currentStep > 1 ? (
+              <button type="button" onClick={handlePrevStep} className="px-6 py-2 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                Back
+              </button>
+            ) : <div></div>}
+            
+            {currentStep < totalSteps ? (
+              <button type="button" onClick={handleNextStep} className="px-6 py-2 bg-[var(--color-brand-emerald)] text-white text-sm font-medium rounded-md hover:bg-[var(--color-brand-emerald-hover)] transition-colors">
+                Continue
+              </button>
+            ) : (
+              <button disabled={isSubmitting} type="submit" className="px-6 py-2 bg-[var(--color-brand-emerald)] text-white text-sm font-medium rounded-md hover:bg-[var(--color-brand-emerald-hover)] transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center">
+                {isSubmitting ? "Submitting..." : <><CheckCircle2 className="w-4 h-4 mr-2" /> Submit Application</>}
+              </button>
+            )}
+          </div>
+
+        </form>
+      </div>
+    );
+  };
 
   const renderInvestorForm = () => (
     <div className="bg-[var(--card-bg)] py-8 px-4 shadow sm:rounded-xl sm:px-10 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-500">

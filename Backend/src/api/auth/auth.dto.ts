@@ -10,6 +10,17 @@ export const registerSchema = {
     full_name: z.string().min(2, 'Full name is required'),
     phone: z.string().optional(),
     role: UserRoleEnum,
+    startup_profile: z.object({
+      industry: z.string().optional(),
+      stage: z.string().optional(),
+      current_arr: z.number().optional(),
+      last_year_revenue: z.number().optional(),
+      revenue_model: z.string().optional(),
+      funding_sought: z.number().optional(),
+      primary_use_of_funds: z.string().optional(),
+      previous_funding: z.number().optional(),
+      custom_qa: z.record(z.any()).optional(),
+    }).optional(),
   }),
 };
 
