@@ -1,5 +1,7 @@
-require('dotenv').config();
-const { z } = require('zod');
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+dotenv.config();
 
 // Define a schema for our environment variables using Zod
 const envSchema = z.object({
@@ -17,4 +19,5 @@ if (!_env.success) {
   process.exit(1);
 }
 
-module.exports = _env.data;
+export const env = _env.data;
+export default env;

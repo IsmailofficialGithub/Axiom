@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-const env = require('./env.config');
+import { createClient } from '@supabase/supabase-js';
+import env from './env.config.js';
 
 // Initialize the Supabase client using the Service Role Key
 // IMPORTANT: This client bypasses Row Level Security (RLS). 
@@ -11,4 +11,4 @@ const supabaseAdmin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_K
   },
 });
 
-module.exports = supabaseAdmin;
+export default supabaseAdmin;

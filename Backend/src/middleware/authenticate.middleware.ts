@@ -1,8 +1,9 @@
-const ApiError = require('../utils/ApiError');
-const supabaseAdmin = require('../config/supabase.config');
+import { Request, Response, NextFunction } from 'express';
+import ApiError from '../utils/ApiError.js';
+import supabaseAdmin from '../config/supabase.config.js';
 
 // Supabase authentication middleware
-const authenticate = async (req, res, next) => {
+const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -19,7 +20,6 @@ const authenticate = async (req, res, next) => {
     }
 
     // Now that we have the authenticated user, fetch their profile to get their role.
-    // Assuming you have a profiles table as per the Details.md roadmap.
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, role, status')
@@ -48,4 +48,4 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = authenticate;
+export default authenticate;

@@ -1,8 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const { errorConverter, errorHandler } = require('./middleware/error.middleware');
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { errorConverter, errorHandler } from './middleware/error.middleware.js';
+import ApiError from './utils/ApiError.js';
 
 const app = express();
 
@@ -22,7 +23,7 @@ app.use(cors());
 app.use(morgan('dev'));
 
 // Basic health check route
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date() });
 });
 
@@ -30,8 +31,7 @@ app.get('/health', (req, res) => {
 // app.use('/api/v1', routes);
 
 // send back a 404 error for any unknown api request
-app.use((req, res, next) => {
-  const ApiError = require('./utils/ApiError');
+app.use((req: Request, res: Response, next: NextFunction) => {
   next(new ApiError(404, 'Not found'));
 });
 
@@ -41,4 +41,4 @@ app.use(errorConverter);
 // handle error
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

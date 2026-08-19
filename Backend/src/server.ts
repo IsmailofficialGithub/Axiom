@@ -1,5 +1,5 @@
-const app = require('./app');
-const env = require('./config/env.config');
+import app from './app.js';
+import env from './config/env.config.js';
 
 const server = app.listen(env.PORT, () => {
   console.log(`✅ Server is running on port ${env.PORT} in ${env.NODE_ENV} mode`);
@@ -16,7 +16,7 @@ const exitHandler = () => {
   }
 };
 
-const unexpectedErrorHandler = (error) => {
+const unexpectedErrorHandler = (error: unknown) => {
   console.error('Unhandled Exception/Rejection:', error);
   exitHandler();
 };

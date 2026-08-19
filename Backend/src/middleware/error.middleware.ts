@@ -1,7 +1,8 @@
-const ApiError = require('../utils/ApiError');
-const env = require('../config/env.config');
+import { Request, Response, NextFunction } from 'express';
+import ApiError from '../utils/ApiError.js';
+import env from '../config/env.config.js';
 
-const errorConverter = (err, req, res, next) => {
+export const errorConverter = (err: any, req: Request, res: Response, next: NextFunction) => {
   let error = err;
   if (!(error instanceof ApiError)) {
     const statusCode = error.statusCode || 500;
@@ -11,7 +12,7 @@ const errorConverter = (err, req, res, next) => {
   next(error);
 };
 
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err: ApiError, req: Request, res: Response, next: NextFunction) => {
   let { statusCode, message } = err;
   
   if (env.NODE_ENV === 'production' && !err.isOperational) {
@@ -32,9 +33,4 @@ const errorHandler = (err, req, res, next) => {
   }
 
   res.status(statusCode).send(response);
-};
-
-module.exports = {
-  errorConverter,
-  errorHandler,
 };
