@@ -9,6 +9,8 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 const loginSchema = z.object({
   email: z.string().email("Invalid email address").max(100, "Email cannot exceed 100 characters"),
   password: z.string().min(1, "Password is required").max(64, "Password cannot exceed 64 characters"),
@@ -24,6 +26,7 @@ const getDeviceFingerprint = () => {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -48,8 +51,11 @@ export default function LoginPage() {
         throw new Error(resData.message || "Login failed");
       }
       
+      // Save auth state
+      login(resData.access_token, resData.user);
+      
       toast.success("Login successful!");
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Something went wrong.");
     } finally {

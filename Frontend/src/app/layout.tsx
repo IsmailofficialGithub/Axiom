@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Axiom | Connecting Startups with Smart Capital",
-  description: "The premium institutional platform empowering scalable growth through strategic funding and analytics.",
+  title: "Axiom | The Institutional Platform for Startups and Investors",
+  description: "Connect with the future of capital through Axiom's bespoke FinTech platform.",
 };
 
 export default function RootLayout({
@@ -23,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Toaster position="top-center" />
-          <Navbar />
-          <main className="flex-1 flex flex-col">{children}</main>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <Toaster position="top-center" />
+            <Navbar />
+            <main className="flex-1 flex flex-col">{children}</main>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
