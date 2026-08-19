@@ -21,10 +21,32 @@ const validateOnboarding = (req: Request, res: Response, next: NextFunction) => 
 // Protected routes (Require Authentication)
 router.use(authenticate);
 
-// POST /api/v1/users/onboard
+/**
+ * @openapi
+ * /api/v1/users/onboard:
+ *   post:
+ *     summary: Onboard a user (Investor or Startup)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: User onboarded successfully
+ */
 router.post('/onboard', validateOnboarding, usersController.onboardUser);
 
-// GET /api/v1/users/profile
+/**
+ * @openapi
+ * /api/v1/users/profile:
+ *   get:
+ *     summary: Get my profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ */
 router.get('/profile', usersController.getMyProfile);
 
 export default router;
