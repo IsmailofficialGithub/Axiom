@@ -1,0 +1,17 @@
+{
+  "name": "frima-database",
+  "version": "1.0.0",
+  "description": "Database migrations and seeding",
+  "main": "migrate.js",
+  "type": "module",
+  "scripts": {
+    "migrate": "node migrate.js",
+    "seed": "node seeds/seed.js",
+    "setup": "npm run migrate && npm run seed"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3"
+  }
+}
