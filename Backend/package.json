@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "dev:all": "concurrently \"npm run dev\" \"cd ../Frontend && npm run dev\"",
+    "dev:all": "concurrently \"npm run dev\" \"cross-env CHOKIDAR_USEPOLLING=true npm run dev --prefix ../Frontend\"",
     "build": "tsc",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
@@ -36,6 +36,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",

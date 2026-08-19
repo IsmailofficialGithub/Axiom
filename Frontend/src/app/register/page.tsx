@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Rocket, Briefcase } from "lucide-react";
+import { ArrowLeft, Rocket, Briefcase, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 const passwordSchema = z.string()
   .min(8, "Must be at least 8 characters")
@@ -56,7 +57,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<"startup" | "investor" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const startupForm = useForm<StartupFormValues>({
     resolver: zodResolver(startupSchema),
@@ -68,7 +69,6 @@ export default function RegisterPage() {
 
   const submitToBackend = async (payload: any) => {
     setIsSubmitting(true);
-    setErrorMsg("");
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
@@ -84,10 +84,10 @@ export default function RegisterPage() {
         throw new Error(data.message || "Registration failed");
       }
       
-      alert("Registration successful! Please login.");
+      toast.success("Registration successful! Please login.");
       router.push("/login");
     } catch (err: any) {
-      setErrorMsg(err.message);
+      toast.error(err.message || "Something went wrong.");
     } finally {
       setIsSubmitting(false);
     }
@@ -161,12 +161,6 @@ export default function RegisterPage() {
         </button>
       </div>
 
-      {errorMsg && (
-        <div className="mb-6 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
-          {errorMsg}
-        </div>
-      )}
-
       <form onSubmit={startupForm.handleSubmit(onStartupSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -221,7 +215,18 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password <span className="text-red-500">*</span></label>
-              <input maxLength={64} {...startupForm.register("password")} type="password" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="••••••••" />
+              <div className="relative rounded-md shadow-sm">
+                <input 
+                  maxLength={64} 
+                  {...startupForm.register("password")} 
+                  type={showPassword ? "text" : "password"} 
+                  className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 pr-10 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
+                  placeholder="••••••••" 
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </div>
+              </div>
               {startupForm.formState.errors.password && <p className="text-red-500 text-xs mt-1">{startupForm.formState.errors.password.message}</p>}
             </div>
           </div>
@@ -247,12 +252,6 @@ export default function RegisterPage() {
           Change Role
         </button>
       </div>
-
-      {errorMsg && (
-        <div className="mb-6 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
-          {errorMsg}
-        </div>
-      )}
 
       <form onSubmit={investorForm.handleSubmit(onInvestorSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -294,7 +293,18 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password <span className="text-red-500">*</span></label>
-              <input maxLength={64} {...investorForm.register("password")} type="password" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="••••••••" />
+              <div className="relative rounded-md shadow-sm">
+                <input 
+                  maxLength={64} 
+                  {...investorForm.register("password")} 
+                  type={showPassword ? "text" : "password"} 
+                  className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 pr-10 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" 
+                  placeholder="••••••••" 
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </div>
+              </div>
               {investorForm.formState.errors.password && <p className="text-red-500 text-xs mt-1">{investorForm.formState.errors.password.message}</p>}
             </div>
           </div>

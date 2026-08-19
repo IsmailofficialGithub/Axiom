@@ -8,14 +8,14 @@ import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-// Strict rate limiter for login attempts (Brute Force Protection based on Device Info)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP + Device combination to 5 login requests per window
   message: { message: 'Too many login attempts from this device/IP, please try again after 15 minutes' },
+  validate: { ip: false }, // Disable the strict IPv6 validation warning
   keyGenerator: (req) => {
     // Generate a unique key based on IP, User-Agent, and custom frontend fingerprint
-    const ip = req.ip;
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
     const deviceFingerprint = req.headers['x-device-fingerprint'] || 'unknown';
     return `${ip}_${userAgent}_${deviceFingerprint}`;

@@ -28,7 +28,7 @@ export const registerUser = async (data: any) => {
       role,
       full_name,
       phone,
-      status: 'active', // For now, we activate them immediately
+      status: 'pending', // Institutional accounts require vetting before activation
     });
 
   if (profileError) {
@@ -72,6 +72,10 @@ export const loginUser = async (data: any) => {
 
   if (profileError || !profile) {
     throw new ApiError(404, 'User profile not found');
+  }
+
+  if (profile.status === 'pending') {
+    throw new ApiError(403, 'Your account is pending review by the admin team.');
   }
 
   if (profile.status === 'suspended') {
