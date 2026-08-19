@@ -21,12 +21,10 @@
   --card-bg: var(--color-bg-light-card);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: var(--color-bg-dark);
-    --foreground: var(--color-text-dark);
-    --card-bg: var(--color-bg-dark-card);
-  }
+.dark {
+  --background: var(--color-bg-dark);
+  --foreground: var(--color-text-dark);
+  --card-bg: var(--color-bg-dark-card);
 }
 
 body {
