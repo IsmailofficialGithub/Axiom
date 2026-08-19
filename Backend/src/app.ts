@@ -27,8 +27,10 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date() });
 });
 
-// v1 api routes (To be mounted later)
-// app.use('/api/v1', routes);
+import authRoutes from './api/auth/auth.routes.js';
+
+// v1 api routes
+app.use('/api/v1/auth', authRoutes);
 
 // send back a 404 error for any unknown api request
 app.use((req: Request, res: Response, next: NextFunction) => {
