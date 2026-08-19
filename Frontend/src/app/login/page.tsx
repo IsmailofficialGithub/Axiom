@@ -1,7 +1,62 @@
+"use client"
+
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address").max(100, "Email cannot exceed 100 characters"),
+  password: z.string().min(1, "Password is required").max(64, "Password cannot exceed 64 characters"),
+});
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+const getDeviceFingerprint = () => {
+  if (typeof window === "undefined") return "unknown";
+  return btoa(navigator.userAgent + window.screen.width + window.screen.height).substring(0, 32);
+};
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsSubmitting(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-device-fingerprint": getDeviceFingerprint()
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.message || "Login failed");
+      }
+      
+      alert("Login successful!");
+      router.push("/");
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row flex-1 min-h-[calc(100vh-64px)]">
       {/* Left Form Section */}
@@ -20,38 +75,45 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8">
-            <form action="#" method="POST" className="space-y-6">
+            {errorMsg && (
+              <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+                {errorMsg}
+              </div>
+            )}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium">
-                  Institutional Email
+                  Institutional Email <span className="text-red-500">*</span>
                 </label>
                 <div className="mt-1">
                   <input
+                    {...register("email")}
                     id="email"
-                    name="email"
                     type="email"
+                    maxLength={100}
                     autoComplete="email"
-                    required
                     className="block w-full appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 placeholder-slate-400 focus:border-[var(--color-brand-emerald)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-emerald)] sm:text-sm"
                     placeholder="example@quantum.com"
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
               </div>
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium">
-                  Password
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <div className="mt-1">
                   <input
+                    {...register("password")}
                     id="password"
-                    name="password"
                     type="password"
+                    maxLength={64}
                     autoComplete="current-password"
-                    required
                     className="block w-full appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 placeholder-slate-400 focus:border-[var(--color-brand-emerald)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-emerald)] sm:text-sm"
                     placeholder="••••••••"
                   />
+                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
                 </div>
               </div>
 
@@ -59,7 +121,6 @@ export default function LoginPage() {
                 <div className="flex items-center">
                   <input
                     id="remember-me"
-                    name="remember-me"
                     type="checkbox"
                     className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-[var(--color-brand-emerald)] focus:ring-[var(--color-brand-emerald)] bg-transparent accent-[var(--color-brand-emerald)]"
                   />
@@ -78,9 +139,10 @@ export default function LoginPage() {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md border border-transparent bg-[var(--color-brand-emerald)] py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-[var(--color-brand-emerald-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-emerald)] focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                  disabled={isSubmitting}
+                  className="flex w-full justify-center rounded-md border border-transparent bg-[var(--color-brand-emerald)] py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-[var(--color-brand-emerald-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-emerald)] focus:ring-offset-2 dark:focus:ring-offset-slate-900 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Sign in
+                  {isSubmitting ? "Signing in..." : "Sign in"}
                 </button>
               </div>
             </form>
