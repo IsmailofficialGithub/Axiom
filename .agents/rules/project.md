@@ -1,0 +1,7 @@
+# Antigravity AI Rules
+
+- **Strict Architecture**: The frontend (Next.js) MUST NEVER call Supabase directly. All data fetching MUST route through the Express.js backend API.
+- **Supabase Usage**: Supabase is strictly the database and identity provider. The Express backend uses the `service_role` key to interact with the database.
+- **Role Validation**: All business logic and RBAC (Admin, Investor, Startup) happens in Express middleware, not the frontend.
+- **Database Schema**: Roles are stored as a single ENUM (`admin`, `investor`, `startup`) in the `profiles` table, not as booleans.
+- **Simplicity**: Do not overengineer. Build exactly what is needed for the current phase in `TODO.md`.
