@@ -28,9 +28,15 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 import authRoutes from './api/auth/auth.routes.js';
+import usersRoutes from './api/users/users.routes.js';
+import opportunitiesRoutes from './api/opportunities/opportunities.routes.js';
+import dealRoomRoutes from './api/deal-room/deal-room.routes.js';
 
 // v1 api routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/opportunities', opportunitiesRoutes);
+app.use('/api/v1/deal-room', dealRoomRoutes);
 
 // send back a 404 error for any unknown api request
 app.use((req: Request, res: Response, next: NextFunction) => {
