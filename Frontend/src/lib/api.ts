@@ -20,6 +20,12 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    // If unauthorized, clear tokens and redirect to login
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem("axiom_access_token");
+      localStorage.removeItem("axiom_user");
+      window.location.href = "/login";
+    }
     throw new Error(data.message || `API Error: ${response.status}`);
   }
 
