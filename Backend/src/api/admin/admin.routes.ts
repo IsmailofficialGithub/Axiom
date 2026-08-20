@@ -2,7 +2,7 @@ import { Router } from 'express';
 import validate from '../../middleware/validate.middleware.js';
 import authenticate from '../../middleware/authenticate.middleware.js';
 import authorize from '../../middleware/authorize.middleware.js';
-import { createSubsidiarySchema } from './admin.dto.js';
+import { createSubsidiarySchema, updateUserSchema, updateUserPasswordSchema } from './admin.dto.js';
 import * as adminController from './admin.controller.js';
 
 const router = Router();
@@ -65,5 +65,65 @@ router.get('/subsidiaries', adminController.listSubsidiaries);
  *         description: Subsidiary created successfully
  */
 router.post('/subsidiaries', validate(createSubsidiarySchema), adminController.createSubsidiary);
+
+/**
+ * @openapi
+ * /api/v1/admin/users/{id}:
+ *   patch:
+ *     summary: Update a user's role or status
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ */
+router.patch('/users/:id', validate(updateUserSchema), adminController.updateUser);
+
+/**
+ * @openapi
+ * /api/v1/admin/users/{id}:
+ *   delete:
+ *     summary: Delete a user
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ */
+router.delete('/users/:id', adminController.deleteUser);
+
+/**
+ * @openapi
+ * /api/v1/admin/users/{id}/password:
+ *   post:
+ *     summary: Change a user's password
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ */
+router.post('/users/:id/password', validate(updateUserPasswordSchema), adminController.updateUserPassword);
 
 export default router;

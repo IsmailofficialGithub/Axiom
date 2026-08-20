@@ -40,3 +40,39 @@ export const createSubsidiary = async (data: any) => {
 
   return subsidiary;
 };
+
+export const updateUser = async (id: string, updates: any) => {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new ApiError(500, `Failed to update user: ${error.message}`);
+  }
+
+  return data;
+};
+
+export const deleteUser = async (id: string) => {
+  // Deleting from Auth cascades to public.profiles via foreign key constraint
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+
+  if (error) {
+    throw new ApiError(500, `Failed to delete user: ${error.message}`);
+  }
+
+  return { success: true };
+};
+
+export const updateUserPassword = async (id: string, password: string) => {
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, { password });
+
+  if (error) {
+    throw new ApiError(500, `Failed to update password: ${error.message}`);
+  }
+
+  return data.user;
+};
