@@ -110,3 +110,30 @@ export const loginUser = async (data: any) => {
     },
   };
 };
+
+export const updateProfile = async (id: string, updates: any) => {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new ApiError(500, `Failed to update profile: ${error.message}`);
+  }
+
+  return data;
+};
+
+export const updatePassword = async (id: string, password: string) => {
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, {
+    password
+  });
+
+  if (error) {
+    throw new ApiError(500, `Failed to update password: ${error.message}`);
+  }
+
+  return data;
+};

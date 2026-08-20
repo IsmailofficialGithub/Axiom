@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, MoreHorizontal, ChevronUp, X, Check } from "lucide-react";
+import { Search, ChevronDown, MoreHorizontal, ChevronUp, X, Check, Filter } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,13 +11,22 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPendingOpen, setIsPendingOpen] = useState(true);
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
   // Modal States
   const [editModal, setEditModal] = useState<{isOpen: boolean, user: any | null}>({ isOpen: false, user: null });
   const [passwordModal, setPasswordModal] = useState<{isOpen: boolean, userId: string | null}>({ isOpen: false, userId: null });
+  const [createModal, setCreateModal] = useState({ isOpen: false, step: 1 });
   
   // Form States
   const [editForm, setEditForm] = useState({ role: "", status: "" });
   const [newPassword, setNewPassword] = useState("");
+  const [createForm, setCreateForm] = useState({ 
+    role: "member", full_name: "", email: "", password: "", 
+    industry: "", current_arr: 0, funding_sought: 0 
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dropdown State
@@ -39,8 +48,16 @@ export default function UsersPage() {
     loadUsers();
   }, []);
 
-  const activeMembers = users.filter(u => u.status !== 'pending');
-  const pendingInvites = users.filter(u => u.status === 'pending');
+  // Apply Search and Filters
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          u.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const activeMembers = filteredUsers.filter(u => u.status !== 'pending');
+  const pendingInvites = filteredUsers.filter(u => u.status === 'pending');
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to completely delete this user? This cannot be undone.")) return;
@@ -96,11 +113,33 @@ export default function UsersPage() {
     }
   };
 
+  const submitCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      await fetchApi('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...createForm,
+          current_arr: Number(createForm.current_arr),
+          funding_sought: Number(createForm.funding_sought)
+        }),
+      });
+      await loadUsers();
+      setCreateModal({ isOpen: false, step: 1 });
+      setCreateForm({ role: "member", full_name: "", email: "", password: "", industry: "", current_arr: 0, funding_sought: 0 });
+    } catch (err: any) {
+      alert(err.message || "Failed to create user");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const quickApprove = async (id: string, role: string) => {
     try {
       await fetchApi(`/admin/users/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'active', role }), // Keep current role, just activate
+        body: JSON.stringify({ status: 'active', role }),
       });
       await loadUsers();
     } catch (err) {
@@ -136,15 +175,31 @@ export default function UsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input 
               type="text" 
-              placeholder="Search..." 
-              className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded-md pl-9 pr-4 py-1.5 focus:outline-none focus:border-[#333333] w-48"
+              placeholder="Search users..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded-md pl-9 pr-4 py-1.5 focus:outline-none focus:border-[#333333] w-48 transition-all"
             />
           </div>
-          <button className="flex items-center space-x-2 bg-[#141416] border border-[#222222] hover:bg-[#222222] text-sm text-slate-300 rounded-md px-3 py-1.5 transition-colors">
-            <span>Filters</span>
-            <ChevronDown className="h-4 w-4 text-slate-500" />
-          </button>
-          <button className="bg-[#1E90FF] hover:bg-[#1C86EE] text-white text-sm font-medium rounded-md px-4 py-1.5 transition-colors">
+          <div className="relative flex items-center bg-[#141416] border border-[#222222] rounded-md px-3 py-1.5 hover:bg-[#222222] transition-colors">
+            <Filter className="h-4 w-4 text-slate-500 mr-2" />
+            <select 
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="bg-transparent text-sm text-slate-300 focus:outline-none appearance-none cursor-pointer pr-4"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+              <option value="startup">Startup</option>
+              <option value="investor">Investor</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+          </div>
+          <button 
+            onClick={() => setCreateModal({ isOpen: true, step: 1 })}
+            className="bg-[#1E90FF] hover:bg-[#1C86EE] text-white text-sm font-medium rounded-md px-4 py-1.5 transition-colors"
+          >
             Add member
           </button>
         </div>
@@ -178,7 +233,7 @@ export default function UsersPage() {
               <tr key={member.id} className="border-b border-[#222222] hover:bg-[#141416]/50 transition-colors">
                 <td className="py-4 px-4 text-slate-300 flex items-center space-x-3">
                   <div className="h-8 w-8 rounded-full bg-[#2A2A2D] flex items-center justify-center text-xs font-semibold text-[#1E90FF]">
-                    {member.full_name.charAt(0).toUpperCase()}
+                    {member.full_name?.charAt(0).toUpperCase()}
                   </div>
                   <span>{member.full_name}</span>
                 </td>
@@ -209,7 +264,7 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
-        {activeMembers.length === 0 && <div className="text-center py-8 text-slate-500">No active members found.</div>}
+        {activeMembers.length === 0 && <div className="text-center py-8 text-slate-500">No members found matching your search.</div>}
       </div>
 
       {/* Pending Invites */}
@@ -231,7 +286,7 @@ export default function UsersPage() {
               <div key={invite.id} className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-[#141416]/50 transition-colors border border-transparent hover:border-[#222222]">
                 <div className="flex items-center space-x-4 w-1/3">
                   <div className="h-8 w-8 rounded bg-[#2A2A2D] flex items-center justify-center text-xs font-semibold text-slate-400 flex-shrink-0">
-                    {invite.full_name.charAt(0).toUpperCase()}
+                    {invite.full_name?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-slate-300 truncate">{invite.full_name}</span>
@@ -266,10 +321,100 @@ export default function UsersPage() {
                 </div>
               </div>
             ))}
-            {pendingInvites.length === 0 && <div className="text-sm text-slate-500 py-2">No pending invites.</div>}
+            {pendingInvites.length === 0 && <div className="text-sm text-slate-500 py-2">No pending invites matching search.</div>}
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      {createModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141416] border border-[#222222] rounded-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-4 border-b border-[#222222]">
+              <h3 className="text-lg font-semibold text-white">Add Member (Step {createModal.step} of {createForm.role === 'startup' ? 2 : 1})</h3>
+              <button onClick={() => setCreateModal({isOpen: false, step: 1})} className="text-slate-500 hover:text-white"><X className="h-5 w-5" /></button>
+            </div>
+            
+            <form onSubmit={submitCreate} className="p-4 space-y-4 overflow-y-auto">
+              
+              {createModal.step === 1 && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Select Role</label>
+                    <select 
+                      value={createForm.role}
+                      onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
+                      className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]"
+                    >
+                      <option value="member">Standard Member</option>
+                      <option value="startup">Startup</option>
+                      <option value="investor">Investor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
+                    <input type="text" required value={createForm.full_name} onChange={(e) => setCreateForm({...createForm, full_name: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                    <input type="email" required value={createForm.email} onChange={(e) => setCreateForm({...createForm, email: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Temporary Password</label>
+                    <input type="password" required minLength={6} value={createForm.password} onChange={(e) => setCreateForm({...createForm, password: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                  </div>
+
+                  <div className="pt-4 flex justify-end space-x-3 border-t border-[#222222]">
+                    <button type="button" onClick={() => setCreateModal({isOpen: false, step: 1})} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Cancel</button>
+                    {createForm.role === 'startup' ? (
+                      <button type="button" onClick={() => setCreateModal({isOpen: true, step: 2})} className="px-4 py-2 text-sm font-medium bg-[#1E90FF] text-white rounded-md hover:bg-[#1C86EE] transition-colors">
+                        Next: Startup Details
+                      </button>
+                    ) : (
+                      <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-sm font-medium bg-[#1E90FF] text-white rounded-md hover:bg-[#1C86EE] transition-colors disabled:opacity-50">
+                        {isSubmitting ? "Creating..." : "Create User"}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {createModal.step === 2 && createForm.role === 'startup' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Industry / Sector</label>
+                    <select required value={createForm.industry} onChange={(e) => setCreateForm({...createForm, industry: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]">
+                      <option value="" disabled>Select an industry...</option>
+                      <option value="fintech">FinTech</option>
+                      <option value="healthtech">HealthTech</option>
+                      <option value="saas">Enterprise SaaS</option>
+                      <option value="ecommerce">E-Commerce</option>
+                      <option value="cleantech">CleanTech</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Current ARR ($)</label>
+                    <input type="number" required min="0" value={createForm.current_arr} onChange={(e) => setCreateForm({...createForm, current_arr: Number(e.target.value)})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Funding Sought ($)</label>
+                    <input type="number" required min="0" value={createForm.funding_sought} onChange={(e) => setCreateForm({...createForm, funding_sought: Number(e.target.value)})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                  </div>
+
+                  <div className="pt-4 flex justify-end space-x-3 border-t border-[#222222]">
+                    <button type="button" onClick={() => setCreateModal({isOpen: true, step: 1})} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Back</button>
+                    <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-sm font-medium bg-[#1E90FF] text-white rounded-md hover:bg-[#1C86EE] transition-colors disabled:opacity-50">
+                      {isSubmitting ? "Creating..." : "Create Startup"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editModal.isOpen && editModal.user && (

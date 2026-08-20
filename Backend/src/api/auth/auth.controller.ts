@@ -21,10 +21,26 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const getMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // req.user is populated by the authenticate middleware
-    res.status(200).json({
-      user: req.user,
-    });
+    // The authenticate middleware attaches the user to req.user
+    res.status(200).json({ user: req.user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await authService.updateProfile(req.user!.id, req.body);
+    res.status(200).json({ message: 'Profile updated successfully', data: profile });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await authService.updatePassword(req.user!.id, req.body.password);
+    res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
     next(error);
   }

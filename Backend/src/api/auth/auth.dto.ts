@@ -30,3 +30,16 @@ export const loginSchema = {
     password: z.string().min(1, 'Password is required'),
   }),
 };
+
+export const updateProfileSchema = {
+  body: z.object({
+    full_name: z.string().min(2, 'Name is required').optional(),
+    phone: z.string().optional(),
+  }),
+};
+
+export const updatePasswordSchema = {
+  body: z.object({
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+  }),
+};

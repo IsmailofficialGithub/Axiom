@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import validate from '../../middleware/validate.middleware.js';
 import authenticate from '../../middleware/authenticate.middleware.js';
-import { loginSchema, registerSchema } from './auth.dto.js';
+import { loginSchema, registerSchema, updateProfileSchema, updatePasswordSchema } from './auth.dto.js';
 import * as authController from './auth.controller.js';
 
 import rateLimit from 'express-rate-limit';
@@ -90,5 +90,7 @@ router.post('/login', loginLimiter, validate(loginSchema), authController.login)
 // Protected routes
 // The getMe route requires a valid JWT
 router.get('/me', authenticate, authController.getMe);
+router.patch('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile);
+router.patch('/password', authenticate, validate(updatePasswordSchema), authController.updatePassword);
 
 export default router;
