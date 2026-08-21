@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { Search, ChevronDown, MoreHorizontal, ChevronUp, X, Check, Filter } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPendingOpen, setIsPendingOpen] = useState(true);
@@ -253,6 +255,7 @@ export default function UsersPage() {
                   </button>
                   {openDropdown === member.id && (
                     <div className="absolute right-8 top-10 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden">
+                      <button onClick={() => { router.push(`/dashboard/users/${member.id}`); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">View Details</button>
                       <button onClick={() => handleOpenEdit(member)} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Edit User</button>
                       <button onClick={() => { setPasswordModal({ isOpen: true, userId: member.id }); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Change Password</button>
                       <div className="border-t border-[#222222]"></div>
@@ -299,24 +302,27 @@ export default function UsersPage() {
                   <div className="text-sm text-slate-300 capitalize min-w-[80px]">
                     {invite.role}
                   </div>
-                  <button 
-                    onClick={() => quickApprove(invite.id, invite.role)}
-                    className="flex items-center space-x-1 text-xs font-medium text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded transition-colors"
-                  >
-                    <Check className="h-3 w-3" />
-                    <span>Approve</span>
-                  </button>
-                  <div className="relative">
-                    <button onClick={() => setOpenDropdown(openDropdown === invite.id ? null : invite.id)} className="text-slate-500 hover:text-slate-300 p-1 rounded hover:bg-[#222222]">
-                      <MoreHorizontal className="h-4 w-4" />
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => router.push(`/dashboard/users/${invite.id}`)}
+                      className="flex items-center space-x-1 text-xs font-medium text-[#00D1D1] bg-[#00D1D1]/10 hover:bg-[#00D1D1]/20 px-2 py-1 rounded transition-colors cursor-pointer"
+                    >
+                      <span>Details</span>
                     </button>
-                    {openDropdown === invite.id && (
-                      <div className="absolute right-0 top-8 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden">
-                        <button onClick={() => handleOpenEdit(invite)} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Edit Request</button>
-                        <div className="border-t border-[#222222]"></div>
-                        <button onClick={() => handleDelete(invite.id)} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#222222] hover:text-red-400">Reject & Delete</button>
-                      </div>
-                    )}
+                    <button 
+                      onClick={() => quickApprove(invite.id, invite.role)}
+                      className="flex items-center space-x-1 text-xs font-medium text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded transition-colors cursor-pointer"
+                    >
+                      <Check className="h-3 w-3" />
+                      <span>Approve</span>
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(invite.id)}
+                      className="flex items-center space-x-1 text-xs font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded transition-colors cursor-pointer"
+                    >
+                      <X className="h-3 w-3" />
+                      <span>Reject</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -497,6 +503,7 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
 
     </div>
   );

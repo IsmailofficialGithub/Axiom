@@ -10,6 +10,15 @@ export const listUsers = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+export const getUserDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await adminService.getUserById(req.params.id);
+    res.status(200).json({ data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const listSubsidiaries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const subsidiaries = await adminService.listSubsidiaries();

@@ -7,9 +7,14 @@ export default function Home() {
       {/* Hero Section */}
       <section className="w-full py-24 md:py-32 lg:py-40 bg-[var(--background)]">
         <div className="container mx-auto px-4 md:px-8 text-center flex flex-col items-center">
-          <div className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-800 px-3 py-1 text-sm text-[var(--color-brand-emerald)] font-medium mb-8">
+          <div className="relative mb-8 flex justify-center">
+            <div className="absolute inset-0 bg-[#00D1D1] opacity-20 blur-3xl rounded-full w-24 h-24"></div>
+            <img src="/logo-icon.png" alt="Axiomra Logo" className="relative h-20 w-auto z-10 transition-transform duration-700 hover:scale-105" />
+          </div>
+
+          <div className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-800 px-3 py-1 text-sm text-[var(--color-brand-emerald)] font-medium mb-8 bg-[var(--card-bg)]/50 backdrop-blur">
             <span className="flex h-2 w-2 rounded-full bg-[var(--color-brand-emerald)] mr-2"></span>
-            Axiom Platform v1.0 is Live
+            Axiomra Platform v1.0 is Live
           </div>
           
           <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight md:text-6xl lg:text-7xl mb-8 text-balance">

@@ -48,5 +48,6 @@ router.post('/onboard', validateOnboarding, usersController.onboardUser);
  *         description: User profile
  */
 router.get('/profile', usersController.getMyProfile);
+router.patch('/profile/details', usersController.updateMyProfileDetails);
 
 export default router;

@@ -263,7 +263,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Company Name <span className="text-red-500">*</span></label>
-                <input maxLength={60} {...register("companyName")} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="Axiom Corp" />
+                <input maxLength={60} {...register("companyName")} type="text" className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]" placeholder="Axiomra Corp" />
                 {errors.companyName && <p className="text-red-500 text-xs mt-1">{errors.companyName.message}</p>}
               </div>
               <div>
@@ -546,7 +546,7 @@ export default function RegisterPage() {
         </Link>
         <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Create your account</h2>
         <p className="text-lg text-slate-600 dark:text-slate-400 mb-10">
-          Join Axiom to connect with the future of capital.
+          Join Axiomra to connect with the future of capital.
         </p>
 
         {!role && renderRoleSelection()}

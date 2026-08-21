@@ -4,11 +4,25 @@ import ApiError from '../../utils/ApiError.js';
 export const listAllUsers = async () => {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('*')
+    .select('*, startups(*), investors(*)')
     .order('created_at', { ascending: false });
 
   if (error) {
     throw new ApiError(500, `Failed to fetch users: ${error.message}`);
+  }
+
+  return data;
+};
+
+export const getUserById = async (id: string) => {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('*, startups(*), investors(*)')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    throw new ApiError(500, `Failed to fetch user: ${error.message}`);
   }
 
   return data;
@@ -121,6 +135,33 @@ export const updateUser = async (id: string, updates: any) => {
 
   if (error) {
     throw new ApiError(500, `Failed to update user: ${error.message}`);
+  }
+
+  // Provision in companies table if activating a startup
+  if (updates.status === 'active' && data.role === 'startup') {
+    const { data: existingCompany } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('profile_id', id)
+      .maybeSingle();
+
+    if (!existingCompany) {
+      const { data: startupData } = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      await supabaseAdmin
+        .from('companies')
+        .insert({
+          profile_id: id,
+          company_name: data.full_name || 'Startup Company',
+          industry: startupData?.industry || null,
+          stage: startupData?.stage || null,
+          description: startupData?.description || null
+        });
+    }
   }
 
   return data;

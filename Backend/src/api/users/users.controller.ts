@@ -36,3 +36,22 @@ export const getMyProfile = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const updateMyProfileDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+
+    if (!userId || !role) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+
+    const result = await usersService.updateUserProfileDetails(userId, role, req.body);
+    res.status(200).json({
+      message: 'Profile details updated successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

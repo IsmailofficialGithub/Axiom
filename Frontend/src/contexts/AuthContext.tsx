@@ -8,6 +8,7 @@ interface User {
   email: string;
   role: "startup" | "investor" | "admin";
   full_name: string;
+  phone?: string;
   status: "active" | "pending" | "suspended";
 }
 

@@ -26,6 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -36,139 +37,126 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#0F0F12]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E90FF]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D1D1]"></div>
       </div>
     );
   }
 
-  const adminNav = [
-    { name: "General", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Members", href: "/dashboard/users", icon: Users },
-    { name: "Subsidiaries", href: "/dashboard/subsidiaries", icon: Building2 },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  ];
+  const getNavItems = () => {
+    if (user?.role === 'admin') {
+      return [
+        { name: "General", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Members", href: "/dashboard/users", icon: Users },
+        { name: "Subsidiaries", href: "/dashboard/subsidiaries", icon: Building2 },
+        { name: "Opportunities", href: "/dashboard/opportunities", icon: Briefcase },
+        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+      ];
+    } else if (user?.role === 'investor') {
+      return [
+        { name: "General", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Marketplace", href: "/dashboard/opportunities", icon: Briefcase },
+        { name: "Network", href: "/dashboard/network", icon: Globe },
+        { name: "Insights", href: "/dashboard/insights", icon: BarChart },
+        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+      ];
+    } else { // startup
+      return [
+        { name: "General", href: "/dashboard", icon: LayoutDashboard },
+        { name: "My Opportunities", href: "/dashboard/opportunities", icon: Briefcase },
+        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+      ];
+    }
+  };
 
-  const platformNav = [
-    { name: "Network", href: "/dashboard/network", icon: Globe },
-    { name: "Insights", href: "/dashboard/insights", icon: BarChart },
-    { name: "Opportunities", href: "/dashboard/opportunities", icon: Briefcase },
-  ];
+  const navItems = getNavItems();
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#0F0F12] text-slate-300 font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#0F0F12] text-slate-300 font-sans">
       {/* Sidebar for desktop */}
-      <div className="hidden md:flex md:flex-shrink-0">
-        <div className="flex flex-col w-64 bg-[#141416] border-r border-[#222222]">
+      <div className="hidden md:flex md:flex-shrink-0 transition-all duration-300">
+        <div className={`flex flex-col transition-all duration-300 ${isSidebarCollapsed ? "w-16" : "w-64"} bg-[#141416] border-r border-[#222222] overflow-hidden`}>
           
-          <div className="p-4 border-b border-[#222222] flex items-center space-x-3">
-            <Link href="/" className="p-1 hover:bg-[#2A2A2D] rounded-md transition-colors text-slate-400">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+          <div className={`p-4 border-b border-[#222222] flex ${isSidebarCollapsed ? "flex-col items-center space-y-3 justify-center" : "items-center space-x-3"}`}>
+            <button 
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+              className="p-1 hover:bg-[#2A2A2D] rounded-md transition-colors text-slate-400 focus:outline-none cursor-pointer"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              <ArrowLeft className={`h-4 w-4 transition-transform duration-300 ${isSidebarCollapsed ? "rotate-180" : ""}`} />
+            </button>
             <div className="flex items-center">
-              <div className="h-6 w-6 rounded bg-[#1E90FF] text-white flex items-center justify-center font-bold text-xs mr-2">
-                {user.full_name.charAt(0)}
+              <div className="h-6 w-6 flex items-center justify-center flex-shrink-0">
+                <img src="/logo-icon.png" alt="Axiomra Icon" className="h-5 w-auto" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white leading-tight">Workspace settings</span>
-                <span className="text-[10px] text-slate-500 leading-tight truncate max-w-[120px]">{user.full_name}</span>
-              </div>
+              {!isSidebarCollapsed && (
+                <div className="flex flex-col ml-2 transition-opacity duration-300 opacity-100">
+                  <span className="text-sm font-semibold text-white leading-tight">Axiomra Portal</span>
+                  <span className="text-[10px] text-slate-500 leading-tight truncate max-w-[120px]">{user.full_name}</span>
+                </div>
+              )}
             </div>
           </div>
-
+ 
           <div className="flex-1 flex flex-col overflow-y-auto py-4">
-            
             <div className="px-3 mb-2">
-              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Administration</h3>
+              {!isSidebarCollapsed && (
+                <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 transition-opacity duration-300">Navigation</h3>
+              )}
               <nav className="space-y-0.5">
-                {adminNav.map((item) => {
+                {navItems.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      className={`group flex items-center ${isSidebarCollapsed ? "justify-center px-2 py-2" : "px-3 py-2"} text-sm font-medium rounded-md transition-colors ${
                         isActive 
-                          ? "bg-[#2A2A2D] text-white" 
+                          ? "bg-[#2A2A2D] text-[#00D1D1]" 
                           : "text-slate-400 hover:bg-[#222222] hover:text-white"
                       }`}
+                      title={isSidebarCollapsed ? item.name : undefined}
                     >
-                      <Icon className={`mr-3 h-4 w-4 ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`} />
-                      {item.name}
+                      <Icon className={`${isSidebarCollapsed ? "" : "mr-3"} h-4 w-4 flex-shrink-0 ${isActive ? "text-[#00D1D1]" : "text-slate-500 group-hover:text-slate-300"}`} />
+                      {!isSidebarCollapsed && <span className="transition-opacity duration-300">{item.name}</span>}
                     </Link>
                   );
                 })}
               </nav>
             </div>
-
-            <div className="px-3 mt-6">
-              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Platform</h3>
-              <nav className="space-y-0.5">
-                {platformNav.map((item) => {
-                  const isActive = pathname === item.href;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        isActive 
-                          ? "bg-[#2A2A2D] text-white" 
-                          : "text-slate-400 hover:bg-[#222222] hover:text-white"
-                      }`}
-                    >
-                      <Icon className={`mr-3 h-4 w-4 ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`} />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-            
           </div>
           
           <div className="flex-shrink-0 border-t border-[#222222] p-4">
             <button 
               onClick={logout} 
-              className="group flex w-full items-center px-3 py-2 text-sm font-medium rounded-md text-slate-400 hover:bg-[#2A2A2D] hover:text-white transition-colors"
+              className={`group flex w-full items-center ${isSidebarCollapsed ? "justify-center px-2 py-2" : "px-3 py-2"} text-sm font-medium rounded-md text-slate-400 hover:bg-[#2A2A2D] hover:text-white transition-colors cursor-pointer`}
+              title={isSidebarCollapsed ? "Sign out" : undefined}
             >
-              <LogOut className="mr-3 h-4 w-4 text-slate-500 group-hover:text-slate-300" />
-              Sign out
+              <LogOut className={`${isSidebarCollapsed ? "" : "mr-3"} h-4 w-4 flex-shrink-0 text-slate-500 group-hover:text-slate-300`} />
+              {!isSidebarCollapsed && <span className="transition-opacity duration-300">Sign out</span>}
             </button>
           </div>
         </div>
       </div>
-
+ 
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
         {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between border-b border-[#222222] p-4 bg-[#141416]">
-          <span className="text-lg font-bold text-white">Workspace</span>
+          <span className="text-lg font-bold text-white">Axiomra Portal</span>
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className="text-slate-400 focus:outline-none"
+            className="text-slate-400 focus:outline-none cursor-pointer"
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-
+ 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-b border-[#222222] bg-[#141416] absolute z-50 w-full left-0 mt-[65px] h-full">
             <nav className="px-4 pt-4 pb-4 space-y-1">
-              {adminNav.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center px-3 py-3 text-base font-medium rounded-md text-slate-300 hover:bg-[#222222] hover:text-white"
-                >
-                  <item.icon className="mr-4 h-5 w-5 text-slate-500" />
-                  {item.name}
-                </Link>
-              ))}
-              <div className="h-px bg-[#222222] my-4"></div>
-              {platformNav.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
@@ -182,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="h-px bg-[#222222] my-4"></div>
               <button 
                 onClick={logout}
-                className="w-full flex items-center px-3 py-3 text-base font-medium rounded-md text-red-500 hover:bg-[#222222]"
+                className="w-full flex items-center px-3 py-3 text-base font-medium rounded-md text-red-500 hover:bg-[#222222] cursor-pointer"
               >
                 <LogOut className="mr-4 h-5 w-5" />
                 Sign out

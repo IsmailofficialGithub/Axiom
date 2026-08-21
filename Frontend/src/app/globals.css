@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-emerald: #10B981;
-  --color-brand-emerald-hover: #059669;
+  --color-brand-emerald: #00D1D1;
+  --color-brand-emerald-hover: #00B3B3;
   
   --color-bg-dark: #0F172A; /* Slate 900 */
   --color-bg-dark-card: #1E293B; /* Slate 800 */
@@ -13,6 +13,10 @@
   --color-text-light: #0F172A; /* Slate 900 */
   
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  font-size: 90%;
 }
 
 :root {

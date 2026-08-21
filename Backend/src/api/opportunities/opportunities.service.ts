@@ -35,7 +35,20 @@ export const createOpportunity = async (userId: string, data: any) => {
 export const listOpportunities = async (userRole: string, userId: string, filters: any = {}) => {
   let query = supabaseAdmin
     .from('opportunities')
-    .select('*, companies(company_name, industry)');
+    .select(`
+      *, 
+      companies (
+        company_name, 
+        industry, 
+        profiles (
+          startups (
+            stage, 
+            current_arr, 
+            funding_sought
+          )
+        )
+      )
+    `);
 
   // Investors can only see published opportunities
   if (userRole === 'investor') {
@@ -64,7 +77,16 @@ export const listOpportunities = async (userRole: string, userId: string, filter
 export const getOpportunityById = async (id: string, userRole: string, userId: string) => {
   const { data, error } = await supabaseAdmin
     .from('opportunities')
-    .select('*, companies(*)')
+    .select(`
+      *,
+      companies (
+        *,
+        profiles (
+          *,
+          startups (*)
+        )
+      )
+    `)
     .eq('id', id)
     .single();
 

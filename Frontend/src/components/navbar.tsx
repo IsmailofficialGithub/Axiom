@@ -2,18 +2,25 @@
 
 import Link from "next/link"
 import { ThemeToggle } from "./theme-toggle"
+import { usePathname } from "next/navigation"
 
 import { useAuth } from "@/contexts/AuthContext"
 
 export function Navbar() {
   const { user } = useAuth();
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/dashboard")) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-[var(--background)]/80 backdrop-blur">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold tracking-tight">AXIOM <span className="text-[var(--color-brand-emerald)]">//</span></span>
+          <Link href="/" className="flex items-center space-x-3">
+            <img src="/logo-icon.png" alt="Axiomra Logo" className="h-6 w-auto" />
+            <span className="text-xl font-bold tracking-tight">AXIOMRA</span>
           </Link>
           <nav className="hidden md:flex gap-6 text-sm font-medium">
             <Link href="/opportunities" className="transition-colors hover:text-[var(--color-brand-emerald)]">Opportunities</Link>

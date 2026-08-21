@@ -45,6 +45,7 @@ router.get('/stats', adminController.getAdminStats);
  *         description: User created
  */
 router.get('/users', adminController.listUsers);
+router.get('/users/:id', adminController.getUserDetails);
 router.post('/users', validate(createUserSchema), adminController.createUser);
 
 /**

@@ -156,11 +156,17 @@ export default function LoginPage() {
 
       {/* Right Graphic Section */}
       <div className="hidden lg:flex relative flex-1 bg-[var(--background)] items-center justify-center p-12">
-        <div className="w-full h-full max-w-2xl max-h-[600px] border border-slate-200 dark:border-slate-800 rounded-2xl bg-[var(--card-bg)] shadow-2xl overflow-hidden relative opacity-60 flex items-center justify-center">
-           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-[var(--color-brand-emerald)] rounded-full opacity-20"></div>
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-[var(--color-brand-emerald)] rounded-full opacity-10"></div>
+        <div className="w-full h-full max-w-2xl max-h-[600px] border border-slate-200 dark:border-slate-800 rounded-2xl bg-[var(--card-bg)] shadow-2xl overflow-hidden relative flex items-center justify-center">
+           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-40"></div>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-[var(--color-brand-emerald)] rounded-full opacity-20 animate-pulse" style={{ animationDuration: '4s' }}></div>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-[var(--color-brand-emerald)] rounded-full opacity-10 animate-pulse" style={{ animationDuration: '6s' }}></div>
            <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent"></div>
+           <div className="relative z-10 flex flex-col items-center max-w-sm text-center px-6">
+             <img src="/logo.png" alt="Axiomra Logo" className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.25)] transition-transform duration-700 hover:scale-105" />
+             <p className="text-slate-400 text-sm mt-6 font-light tracking-wide leading-relaxed">
+               Connecting institutional scale capital with next-generation growth enterprises.
+             </p>
+           </div>
         </div>
       </div>
     </div>

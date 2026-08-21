@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Axiom | The Institutional Platform for Startups and Investors",
-  description: "Connect with the future of capital through Axiom's bespoke FinTech platform.",
+  title: "Axiomra | The Institutional Platform for Startups and Investors",
+  description: "Connect with the future of capital through Axiomra's bespoke FinTech platform.",
 };
 
 export default function RootLayout({
