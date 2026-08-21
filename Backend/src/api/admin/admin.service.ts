@@ -137,30 +137,60 @@ export const updateUser = async (id: string, updates: any) => {
     throw new ApiError(500, `Failed to update user: ${error.message}`);
   }
 
-  // Provision in companies table if activating a startup
+  // Provision in companies and opportunities tables if activating a startup
   if (updates.status === 'active' && data.role === 'startup') {
-    const { data: existingCompany } = await supabaseAdmin
+    const { data: startupData } = await supabaseAdmin
+      .from('startups')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    let { data: existingCompany } = await supabaseAdmin
       .from('companies')
       .select('id')
       .eq('profile_id', id)
       .maybeSingle();
 
     if (!existingCompany) {
-      const { data: startupData } = await supabaseAdmin
-        .from('startups')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      await supabaseAdmin
+      const { data: newCompany, error: insertErr } = await supabaseAdmin
         .from('companies')
         .insert({
           profile_id: id,
           company_name: data.full_name || 'Startup Company',
           industry: startupData?.industry || null,
           stage: startupData?.stage || null,
-          description: startupData?.description || null
-        });
+          description: 'Axiomra registered startup portfolio company.'
+        })
+        .select()
+        .single();
+
+      if (!insertErr && newCompany) {
+        existingCompany = newCompany;
+      }
+    }
+
+    const companyId = existingCompany?.id;
+    if (companyId) {
+      const { data: existingOpp } = await supabaseAdmin
+        .from('opportunities')
+        .select('id')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (!existingOpp) {
+        await supabaseAdmin
+          .from('opportunities')
+          .insert({
+            company_id: companyId,
+            title: `${data.full_name || 'Startup'} Capital Placement`,
+            category: startupData?.industry || 'SaaS',
+            description: 'Live capital placement opportunity on Axiomra.',
+            expected_revenue: startupData?.funding_sought || 0,
+            stage: startupData?.stage || 'Seed',
+            status: 'published', // Auto-publish to make it immediately viewable in the marketplace!
+            created_by: id // Assign the startup user's ID
+          });
+      }
     }
   }
 

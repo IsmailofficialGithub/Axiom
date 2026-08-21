@@ -16,6 +16,63 @@ const STAGE_OPTIONS = [
   "Pre-seed", "Seed", "Series A", "Series B", "Series C+", "Growth", "Bootstrapped"
 ];
 
+const getStartupDetails = (opp: any) => {
+  const startups = opp?.companies?.profiles?.startups;
+  if (!startups) return null;
+  if (Array.isArray(startups)) return startups[0];
+  return startups;
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+// Skeleton components for loading state
+const SkeletonCard = () => (
+  <div className="bg-[#141416] border border-[#222222] rounded-xl p-6 flex flex-col justify-between animate-pulse">
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <div className="h-4 w-16 bg-[#222222] rounded"></div>
+        <div className="h-3 w-10 bg-[#222222] rounded"></div>
+      </div>
+      <div>
+        <div className="h-5 w-3/4 bg-[#222222] rounded"></div>
+        <div className="h-3 w-1/2 bg-[#222222] rounded mt-2"></div>
+      </div>
+      <div className="bg-[#0F0F12] p-3 rounded border border-[#222222] space-y-2">
+        <div className="h-3 w-full bg-[#222222] rounded"></div>
+        <div className="h-3 w-5/6 bg-[#222222] rounded"></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#222222]/60 text-xs">
+        <div className="space-y-1.5">
+          <div className="h-2 w-1/2 bg-[#222222] rounded"></div>
+          <div className="h-3.5 w-3/4 bg-[#222222] rounded"></div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="h-2 w-1/2 bg-[#222222] rounded"></div>
+          <div className="h-3.5 w-1/2 bg-[#222222] rounded"></div>
+        </div>
+      </div>
+    </div>
+    <div className="pt-6">
+      <div className="h-8 w-full bg-[#222222] rounded"></div>
+    </div>
+  </div>
+);
+
+const SkeletonRow = () => (
+  <tr className="animate-pulse">
+    <td className="py-4 px-4"><div className="h-4 w-32 bg-[#222222] rounded"></div></td>
+    <td className="py-4 px-4"><div className="h-4 w-24 bg-[#222222] rounded"></div></td>
+    <td className="py-4 px-4"><div className="h-4 w-20 bg-[#222222] rounded"></div></td>
+    <td className="py-4 px-4"><div className="h-4 w-16 bg-[#222222] rounded"></div></td>
+    <td className="py-4 px-4"><div className="h-6 w-16 bg-[#222222] rounded-full"></div></td>
+    <td className="py-4 px-4"><div className="h-4 w-24 bg-[#222222] rounded"></div></td>
+    <td className="py-4 px-4 text-right"><div className="h-4 w-8 bg-[#222222] rounded ml-auto"></div></td>
+  </tr>
+);
+
 export default function OpportunitiesPage() {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -27,6 +84,10 @@ export default function OpportunitiesPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [arrFilter, setArrFilter] = useState("all");
   const [fundingFilter, setFundingFilter] = useState("all");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = user?.role === 'investor' ? 6 : 10;
 
   // Admin/Startup Form Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -43,6 +104,8 @@ export default function OpportunitiesPage() {
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>('identity');
   const [hasRequestedPrivateAccess, setHasRequestedPrivateAccess] = useState<Record<string, boolean>>({});
 
+  const selectedStartupDetails = getStartupDetails(selectedOpp);
+
   // Startup/Admin Deal Room Modal
   const [dealRoomModalOpen, setDealRoomModalOpen] = useState(false);
   const [dealRoomOpp, setDealRoomOpp] = useState<any>(null);
@@ -53,22 +116,34 @@ export default function OpportunitiesPage() {
   const [isAddingDoc, setIsAddingDoc] = useState(false);
   const [isGrantingPermission, setIsGrantingPermission] = useState(false);
 
-  const loadOpportunities = async () => {
+  const loadOpportunities = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const res = await fetchApi('/opportunities');
       setOpportunities(res.data || []);
     } catch (err) {
       console.error("Failed to load opportunities", err);
-      toast.error("Failed to load opportunities");
+      if (!silent) toast.error("Failed to load opportunities");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadOpportunities();
+
+    // Poll silently for real-time updates every 5 seconds
+    const interval = setInterval(() => {
+      loadOpportunities(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, industryFilter, stageFilter, arrFilter, fundingFilter]);
 
   const filteredOpportunities = opportunities.filter(o => {
     const matchesSearch = o.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +153,7 @@ export default function OpportunitiesPage() {
     const companyIndustry = o.companies?.industry?.toLowerCase() || '';
     const matchesIndustry = industryFilter === 'all' || companyIndustry === industryFilter.toLowerCase();
     
-    const startupDetails = o.companies?.profiles?.startups?.[0];
+    const startupDetails = getStartupDetails(o);
     
     // Stage Filter
     const startupStage = startupDetails?.stage?.toLowerCase() || '';
@@ -108,6 +183,13 @@ export default function OpportunitiesPage() {
     
     return matchesSearch && matchesIndustry && matchesStage && matchesARR && matchesFunding;
   });
+
+  // Calculate paginated opportunities
+  const totalItems = filteredOpportunities.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedOpportunities = filteredOpportunities.slice(startIndex, startIndex + itemsPerPage);
 
   const handleOpenCreate = () => {
     setModalMode("create");
@@ -200,11 +282,9 @@ export default function OpportunitiesPage() {
     setSelectedInvestorId("");
 
     try {
-      // 1. Fetch deal room documents
       const docsRes = await fetchApi(`/deal-room/opportunities/${opp.id}/documents`);
       setDealRoomDocs(docsRes.data || []);
 
-      // 2. Fetch active investors list for granting access
       const invRes = await fetchApi('/deal-room/investors');
       setInvestorUsers(invRes.data || []);
     } catch (err) {
@@ -222,11 +302,10 @@ export default function OpportunitiesPage() {
 
     try {
       setIsAddingDoc(true);
-      const res = await fetchApi(`/deal-room/opportunities/${dealRoomOpp.id}/documents`, {
+      await fetchApi(`/deal-room/opportunities/${dealRoomOpp.id}/documents`, {
         method: 'POST',
         body: JSON.stringify({
           file_url: newDoc.file_url,
-          // Storing document title inside custom type or metadata (simulate file_type)
           file_type: newDoc.file_name, 
           visibility: newDoc.visibility
         })
@@ -235,7 +314,6 @@ export default function OpportunitiesPage() {
       toast.success("Document added to deal room successfully!");
       setNewDoc({ file_name: "", file_url: "", visibility: "public" });
       
-      // Refresh documents
       const docsRes = await fetchApi(`/deal-room/opportunities/${dealRoomOpp.id}/documents`);
       setDealRoomDocs(docsRes.data || []);
     } catch (err: any) {
@@ -278,244 +356,295 @@ export default function OpportunitiesPage() {
   );
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 font-sans bg-[#0F0F12] text-slate-300 min-h-screen">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 font-sans bg-[#0F0F12] text-slate-300 min-h-screen flex flex-col justify-between">
       
-      {/* Header and Controls */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 pb-4 border-b border-[#222222]">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            {user?.role === 'investor' ? 'Startup Capital Placement Marketplace' : 'Capital Opportunities'}
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {user?.role === 'investor' 
-              ? 'Browse live startup equity distributions, financials, and custom pitch credentials.' 
-              : 'Configure placement proposals and deal room entries.'}
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search deals..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded pl-9 pr-4 py-2 focus:outline-none focus:border-[#00D1D1] w-48 transition-all"
-            />
+      <div className="space-y-8 flex-1">
+        {/* Header and Controls */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 pb-4 border-b border-[#222222]">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              {user?.role === 'investor' ? 'Startup Capital Placement Marketplace' : 'Capital Opportunities'}
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              {user?.role === 'investor' 
+                ? 'Browse live startup equity distributions, financials, and custom pitch credentials.' 
+                : 'Configure placement proposals and deal room entries.'}
+            </p>
           </div>
-
-          {/* Industry Filter dropdown */}
-          <div className="relative">
-            <select
-              value={industryFilter}
-              onChange={(e) => setIndustryFilter(e.target.value)}
-              className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded px-3 py-2 focus:outline-none focus:border-[#00D1D1] capitalize cursor-pointer"
-            >
-              <option value="all">All Sectors</option>
-              {uniqueIndustries.map((ind: any) => (
-                <option key={ind} value={ind}>{ind.replace('_', '/')}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Add deal button for Admin / Startup */}
-          {user?.role !== 'investor' && (
-            <button 
-              onClick={handleOpenCreate}
-              className="flex items-center bg-[#00D1D1] hover:bg-[#00B3B3] text-white text-xs font-semibold rounded px-4 py-2.5 transition-colors cursor-pointer"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Placement
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Advanced Filter Bar for Investors */}
-      {user?.role === 'investor' && (
-        <>
-          {/* Advanced Filter Bar */}
-          <div className="flex flex-wrap items-center gap-6 bg-[#141416] border border-[#222222] p-5 rounded-xl mb-6 text-xs select-none animate-in fade-in duration-200">
-            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-400">
-              <Filter className="h-4 w-4 text-[#00D1D1]" />
-              <span>Placement Filters:</span>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <input 
+                type="text" 
+                placeholder="Search deals..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded pl-9 pr-4 py-2 focus:outline-none focus:border-[#00D1D1] w-48 transition-all"
+              />
             </div>
-            
-            {/* Stage Filter */}
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">Company Stage</span>
+
+            {/* Industry Filter dropdown */}
+            <div className="relative">
               <select
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value)}
-                className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[120px]"
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value)}
+                className="bg-[#141416] border border-[#222222] text-sm text-slate-300 rounded px-3 py-2 focus:outline-none focus:border-[#00D1D1] capitalize cursor-pointer"
               >
-                <option value="all">All Stages</option>
-                {STAGE_OPTIONS.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
+                <option value="all">All Sectors</option>
+                {uniqueIndustries.map((ind: any) => (
+                  <option key={ind} value={ind}>{ind.replace('_', '/')}</option>
                 ))}
               </select>
             </div>
 
-            {/* ARR Filter */}
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">ARR Minimum</span>
-              <select
-                value={arrFilter}
-                onChange={(e) => setArrFilter(e.target.value)}
-                className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[120px]"
+            {/* Add deal button for Admin / Startup */}
+            {user?.role !== 'investor' && (
+              <button 
+                onClick={handleOpenCreate}
+                className="flex items-center bg-[#00D1D1] hover:bg-[#00B3B3] text-white text-xs font-semibold rounded px-4 py-2.5 transition-colors cursor-pointer"
               >
-                <option value="all">Any Revenue</option>
-                <option value="100k">+$100,000 ARR</option>
-                <option value="500k">+$500,000 ARR</option>
-                <option value="1m">+$1,000,000 ARR</option>
-              </select>
-            </div>
-
-            {/* Funding Sought Range Filter */}
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">Funding Sought</span>
-              <select
-                value={fundingFilter}
-                onChange={(e) => setFundingFilter(e.target.value)}
-                className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[125px]"
-              >
-                <option value="all">Any Funding</option>
-                <option value="under_1m">Under $1M</option>
-                <option value="1m_5m">$1M - $5M</option>
-                <option value="over_5m">Over $5M</option>
-              </select>
-            </div>
-
-            {/* Clear Filters Button */}
-            {(industryFilter !== 'all' || stageFilter !== 'all' || arrFilter !== 'all' || fundingFilter !== 'all' || searchQuery !== '') && (
-              <button
-                onClick={() => {
-                  setIndustryFilter('all');
-                  setStageFilter('all');
-                  setArrFilter('all');
-                  setFundingFilter('all');
-                  setSearchQuery('');
-                }}
-                className="text-xs font-bold text-[#00D1D1] hover:text-[#00B3B3] transition-colors pt-4 self-end cursor-pointer"
-              >
-                Clear Filters
+                <Plus className="h-4 w-4 mr-1" />
+                Add Placement
               </button>
             )}
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOpportunities.map((opp) => (
-              <div 
-                key={opp.id} 
-                className="bg-[#141416] border border-[#222222] rounded-xl p-6 flex flex-col justify-between hover:border-[#00D1D1]/40 transition-all duration-300 group hover:shadow-lg"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <span className="bg-[#00D1D1]/10 text-[#00D1D1] text-[10px] font-bold px-2 py-0.5 rounded capitalize border border-[#00D1D1]/20">
-                      {opp.companies?.industry?.replace('_', '/') || "SaaS"}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">Live</span>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-base font-bold text-white group-hover:text-[#00D1D1] transition-colors line-clamp-1">{opp.title}</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-1">{opp.companies?.company_name || "Axiomra Placement"}</p>
-                  </div>
-
-                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 bg-[#0F0F12] p-3 rounded border border-[#222222]">
-                    {opp.description || "No description provided."}
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-4 pt-2 text-xs border-t border-[#222222]/60">
-                    <div>
-                      <span className="block text-[10px] text-slate-500">Placement Target</span>
-                      <span className="font-bold text-white font-mono">${Number(opp.expected_revenue || 0).toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] text-slate-500">Stage / Maturity</span>
-                      <span className="font-bold text-white capitalize">{opp.stage || "Seed"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6">
-                  <button 
-                    onClick={() => handleOpenMarketplaceDetail(opp.id)}
-                    className="w-full flex items-center justify-center space-x-1 bg-[#00D1D1]/10 hover:bg-[#00D1D1] text-[#00D1D1] hover:text-white text-xs font-bold py-2 rounded transition-all cursor-pointer"
-                  >
-                    <span>View Deal Details</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+        {/* ============================================================== */}
+        {/* INVESTOR CARD-GRID MARKETPLACE                                 */}
+        {/* ============================================================== */}
+        {user?.role === 'investor' && (
+          <>
+            {/* Advanced Filter Bar for Investors */}
+            <div className="flex flex-wrap items-center gap-6 bg-[#141416] border border-[#222222] p-5 rounded-xl mb-6 text-xs select-none animate-in fade-in duration-200">
+              <div className="flex items-center space-x-2 text-xs font-semibold text-slate-400">
+                <Filter className="h-4 w-4 text-[#00D1D1]" />
+                <span>Placement Filters:</span>
               </div>
-            ))}
-          </div>
-          {filteredOpportunities.length === 0 && (
-            <div className="text-center py-12 text-slate-500 border border-dashed border-[#222222] rounded-xl bg-[#141416]/20">
-              No live startup equity placements match your target sector filter.
+              
+              {/* Stage Filter */}
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">Company Stage</span>
+                <select
+                  value={stageFilter}
+                  onChange={(e) => setStageFilter(e.target.value)}
+                  className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[120px]"
+                >
+                  <option value="all">All Stages</option>
+                  {STAGE_OPTIONS.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ARR Filter */}
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">ARR Minimum</span>
+                <select
+                  value={arrFilter}
+                  onChange={(e) => setArrFilter(e.target.value)}
+                  className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[120px]"
+                >
+                  <option value="all">Any Revenue</option>
+                  <option value="100k">+$100,000 ARR</option>
+                  <option value="500k">+$500,000 ARR</option>
+                  <option value="1m">+$1,000,000 ARR</option>
+                </select>
+              </div>
+
+              {/* Funding Sought Range Filter */}
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-wider">Funding Sought</span>
+                <select
+                  value={fundingFilter}
+                  onChange={(e) => setFundingFilter(e.target.value)}
+                  className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#00D1D1] cursor-pointer min-w-[125px]"
+                >
+                  <option value="all">Any Funding</option>
+                  <option value="under_1m">Under $1M</option>
+                  <option value="1m_5m">$1M - $5M</option>
+                  <option value="over_5m">Over $5M</option>
+                </select>
+              </div>
+
+              {/* Clear Filters Button */}
+              {(industryFilter !== 'all' || stageFilter !== 'all' || arrFilter !== 'all' || fundingFilter !== 'all' || searchQuery !== '') && (
+                <button
+                  onClick={() => {
+                    setIndustryFilter('all');
+                    setStageFilter('all');
+                    setArrFilter('all');
+                    setFundingFilter('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-bold text-[#00D1D1] hover:text-[#00B3B3] transition-colors pt-4 self-end cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Content Loading State vs Card Grid */}
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedOpportunities.map((opp) => (
+                    <div 
+                      key={opp.id} 
+                      className="bg-[#141416] border border-[#222222] rounded-xl p-6 flex flex-col justify-between hover:border-[#00D1D1]/40 transition-all duration-300 group hover:shadow-lg"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <span className="bg-[#00D1D1]/10 text-[#00D1D1] text-[10px] font-bold px-2 py-0.5 rounded capitalize border border-[#00D1D1]/20">
+                            {opp.companies?.industry?.replace('_', '/') || "SaaS"}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">Live</span>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-base font-bold text-white group-hover:text-[#00D1D1] transition-colors line-clamp-1">{opp.title}</h3>
+                          <p className="text-xs text-slate-400 font-semibold mt-1">{opp.companies?.company_name || "Axiomra Placement"}</p>
+                        </div>
+
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 bg-[#0F0F12] p-3 rounded border border-[#222222]">
+                          {opp.description || "No description provided."}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2 text-xs border-t border-[#222222]/60">
+                          <div>
+                            <span className="block text-[10px] text-slate-500">Placement Target</span>
+                            <span className="font-bold text-white font-mono">${Number(opp.expected_revenue || 0).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-500">Stage / Maturity</span>
+                            <span className="font-bold text-white capitalize">{opp.stage || "Seed"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6">
+                        <button 
+                          onClick={() => handleOpenMarketplaceDetail(opp.id)}
+                          className="w-full flex items-center justify-center space-x-1 bg-[#00D1D1]/10 hover:bg-[#00D1D1] text-[#00D1D1] hover:text-white text-xs font-bold py-2 rounded transition-all cursor-pointer"
+                        >
+                          <span>View Deal Details</span>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {filteredOpportunities.length === 0 && (
+                  <div className="text-center py-12 text-slate-500 border border-dashed border-[#222222] rounded-xl bg-[#141416]/20">
+                    No live startup equity placements match your target sector filter.
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ============================================================== */}
+        {/* STARTUP / ADMIN TABLE VIEW                                     */}
+        {/* ============================================================== */}
+        {user?.role !== 'investor' && (
+          <div className="overflow-x-auto bg-[#141416] border border-[#222222] rounded-xl p-4">
+            <table className="w-full text-left whitespace-nowrap">
+              <thead>
+                <tr className="text-xs text-slate-400 border-b border-[#222222] select-none">
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Placement Title</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Company</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Target Target ($)</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Deal Stage</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Status</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Created At</th>
+                  <th className="pb-3 px-4 font-semibold uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-[#222222]/50">
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <SkeletonRow key={i} />
+                  ))
+                ) : (
+                  paginatedOpportunities.map((opp) => (
+                    <tr key={opp.id} className="hover:bg-[#0F0F12]/40 transition-colors">
+                      <td className="py-4 px-4 text-slate-200 font-semibold truncate max-w-[200px]">{opp.title}</td>
+                      <td className="py-4 px-4 text-slate-400">{opp.companies?.company_name || "—"}</td>
+                      <td className="py-4 px-4 text-slate-300 font-mono">${Number(opp.expected_revenue || 0).toLocaleString()}</td>
+                      <td className="py-4 px-4 text-slate-400 capitalize">{opp.stage || "—"}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          opp.status === 'published' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
+                          opp.status === 'archived' ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20' : 
+                          'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                        }`}>
+                          {opp.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-slate-400">{formatDate(opp.created_at)}</td>
+                      <td className="py-4 px-4 text-slate-500 text-right relative">
+                        <button onClick={() => setOpenDropdown(openDropdown === opp.id ? null : opp.id)} className="hover:text-slate-300 p-1 rounded hover:bg-[#222222] cursor-pointer">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                        {openDropdown === opp.id && (
+                          <div className="absolute right-8 top-10 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden text-left">
+                            <button onClick={() => handleOpenEdit(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Edit placement</button>
+                            <button onClick={() => handleOpenDealRoom(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Manage Deal Room</button>
+                            <div className="border-t border-[#222222]"></div>
+                            <button onClick={() => handleDelete(opp.id)} className="block w-full text-left px-4 py-2.5 text-xs text-red-500 hover:bg-[#222222] hover:text-red-400 cursor-pointer font-medium">Delete placement</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            {filteredOpportunities.length === 0 && !isLoading && (
+              <div className="text-center py-12 text-slate-500">
+                No placement opportunities listed yet. Click "Add Placement" to set up your first deal room.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ============================================================== */}
-      {/* STARTUP / ADMIN TABLE VIEW                                     */}
+      {/* PAGINATION CONTROLS PANEL                                      */}
       {/* ============================================================== */}
-      {user?.role !== 'investor' && (
-        <div className="overflow-x-auto bg-[#141416] border border-[#222222] rounded-xl p-4">
-          <table className="w-full text-left whitespace-nowrap">
-            <thead>
-              <tr className="text-xs text-slate-400 border-b border-[#222222] select-none">
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Placement Title</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Company</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Target Target ($)</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Deal Stage</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Status</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider">Created At</th>
-                <th className="pb-3 px-4 font-semibold uppercase tracking-wider"></th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-[#222222]/50">
-              {filteredOpportunities.map((opp) => (
-                <tr key={opp.id} className="hover:bg-[#0F0F12]/40 transition-colors">
-                  <td className="py-4 px-4 text-slate-200 font-semibold truncate max-w-[200px]">{opp.title}</td>
-                  <td className="py-4 px-4 text-slate-400">{opp.companies?.company_name || "—"}</td>
-                  <td className="py-4 px-4 text-slate-300 font-mono">${Number(opp.expected_revenue || 0).toLocaleString()}</td>
-                  <td className="py-4 px-4 text-slate-400 capitalize">{opp.stage || "—"}</td>
-                  <td className="py-4 px-4">
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                      opp.status === 'published' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
-                      opp.status === 'archived' ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20' : 
-                      'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                    }`}>
-                      {opp.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-slate-400">{formatDate(opp.created_at)}</td>
-                  <td className="py-4 px-4 text-slate-500 text-right relative">
-                    <button onClick={() => setOpenDropdown(openDropdown === opp.id ? null : opp.id)} className="hover:text-slate-300 p-1 rounded hover:bg-[#222222] cursor-pointer">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                    {openDropdown === opp.id && (
-                      <div className="absolute right-8 top-10 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden text-left">
-                        <button onClick={() => handleOpenEdit(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Edit placement</button>
-                        <button onClick={() => handleOpenDealRoom(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Manage Deal Room</button>
-                        <div className="border-t border-[#222222]"></div>
-                        <button onClick={() => handleDelete(opp.id)} className="block w-full text-left px-4 py-2.5 text-xs text-red-500 hover:bg-[#222222] hover:text-red-400 cursor-pointer font-medium">Delete placement</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredOpportunities.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
-              No placement opportunities listed yet. Click "Add Placement" to set up your first deal room.
-            </div>
-          )}
+      {filteredOpportunities.length > 0 && !isLoading && (
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-[#222222] pt-4 mt-6 text-xs text-slate-500 gap-4 select-none">
+          <div>
+            Showing <span className="font-semibold text-slate-300">{startIndex + 1}</span> to{' '}
+            <span className="font-semibold text-slate-300">{endIndex}</span> of{' '}
+            <span className="font-semibold text-slate-300">{totalItems}</span> placement proposals
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="bg-[#141416] border border-[#222222] px-3.5 py-1.5 rounded text-slate-300 hover:border-[#00D1D1] disabled:opacity-40 disabled:hover:border-[#222222] disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Previous
+            </button>
+            <span className="text-slate-400">Page {currentPage} of {totalPages}</span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="bg-[#141416] border border-[#222222] px-3.5 py-1.5 rounded text-slate-300 hover:border-[#00D1D1] disabled:opacity-40 disabled:hover:border-[#222222] disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 
@@ -639,16 +768,16 @@ export default function OpportunitiesPage() {
                           <div>
                             <span className="block text-[10px] text-slate-500 mb-1">Current Annual Recurring Revenue (ARR)</span>
                             <span className="text-xs font-bold text-white block bg-[#141416] p-2.5 rounded border border-[#222222]">
-                              {selectedOpp.companies?.profiles?.startups?.[0]?.current_arr 
-                                ? `$${Number(selectedOpp.companies.profiles.startups[0].current_arr).toLocaleString()}` 
+                              {selectedStartupDetails?.current_arr 
+                                ? `$${Number(selectedStartupDetails.current_arr).toLocaleString()}` 
                                 : "Not specified"}
                             </span>
                           </div>
                           <div>
                             <span className="block text-[10px] text-slate-500 mb-1">Last Year Revenue</span>
                             <span className="text-xs font-bold text-white block bg-[#141416] p-2.5 rounded border border-[#222222]">
-                              {selectedOpp.companies?.profiles?.startups?.[0]?.last_year_revenue 
-                                ? `$${Number(selectedOpp.companies.profiles.startups[0].last_year_revenue).toLocaleString()}` 
+                              {selectedStartupDetails?.last_year_revenue 
+                                ? `$${Number(selectedStartupDetails.last_year_revenue).toLocaleString()}` 
                                 : "Not specified"}
                             </span>
                           </div>
@@ -661,7 +790,7 @@ export default function OpportunitiesPage() {
                           <span className="font-semibold text-white">Revenue Model & Pricing Strategy</span>
                         </div>
                         <p className="leading-relaxed text-slate-400 bg-[#141416] p-4 rounded border border-[#222222] whitespace-pre-wrap font-sans">
-                          {selectedOpp.companies?.profiles?.startups?.[0]?.revenue_model || "No revenue model details specified."}
+                          {selectedStartupDetails?.revenue_model || "No revenue model details specified."}
                         </p>
                       </div>
                     </div>
@@ -679,16 +808,16 @@ export default function OpportunitiesPage() {
                           <div>
                             <span className="block text-[10px] text-slate-500 mb-1">Placement Funding Sought</span>
                             <span className="text-xs font-bold text-[#00D1D1] block bg-[#141416] p-2.5 rounded border border-[#00D1D1]/30 font-mono">
-                              {selectedOpp.companies?.profiles?.startups?.[0]?.funding_sought 
-                                ? `$${Number(selectedOpp.companies.profiles.startups[0].funding_sought).toLocaleString()}` 
+                              {selectedStartupDetails?.funding_sought 
+                                ? `$${Number(selectedStartupDetails.funding_sought).toLocaleString()}` 
                                 : `$${Number(selectedOpp.expected_revenue || 0).toLocaleString()}`}
                             </span>
                           </div>
                           <div>
                             <span className="block text-[10px] text-slate-500 mb-1">Previous Capital Raised</span>
                             <span className="text-xs font-bold text-white block bg-[#141416] p-2.5 rounded border border-[#222222]">
-                              {selectedOpp.companies?.profiles?.startups?.[0]?.previous_funding 
-                                ? `$${Number(selectedOpp.companies.profiles.startups[0].previous_funding).toLocaleString()}` 
+                              {selectedStartupDetails?.previous_funding 
+                                ? `$${Number(selectedStartupDetails.previous_funding).toLocaleString()}` 
                                 : "Not specified"}
                             </span>
                           </div>
@@ -701,7 +830,7 @@ export default function OpportunitiesPage() {
                           <span className="font-semibold text-white">Primary Use of Funds</span>
                         </div>
                         <p className="leading-relaxed text-slate-400 bg-[#141416] p-4 rounded border border-[#222222] whitespace-pre-wrap font-sans">
-                          {selectedOpp.companies?.profiles?.startups?.[0]?.primary_use_of_funds || "No primary use of funds specified."}
+                          {selectedStartupDetails?.primary_use_of_funds || "No primary use of funds specified."}
                         </p>
                       </div>
                     </div>
@@ -716,9 +845,9 @@ export default function OpportunitiesPage() {
                           <span className="font-semibold text-white">Custom Registration Q&A Responses</span>
                         </div>
                         
-                        {selectedOpp.companies?.profiles?.startups?.[0]?.custom_qa && Object.keys(selectedOpp.companies.profiles.startups[0].custom_qa).length > 0 ? (
+                        {selectedStartupDetails?.custom_qa && Object.keys(selectedStartupDetails.custom_qa).length > 0 ? (
                           <div className="space-y-4 pt-2">
-                            {Object.entries(selectedOpp.companies.profiles.startups[0].custom_qa).map(([question, answer]: [string, any], idx) => (
+                            {Object.entries(selectedStartupDetails.custom_qa).map(([question, answer]: [string, any], idx) => (
                               <div key={idx} className="bg-[#141416] p-4 rounded border border-[#222222] space-y-2">
                                 <span className="block text-xs font-semibold text-white font-sans">Q: {question}</span>
                                 <span className="block text-xs text-slate-400 leading-relaxed pl-4 border-l border-[#00D1D1]/40 whitespace-pre-wrap font-sans">

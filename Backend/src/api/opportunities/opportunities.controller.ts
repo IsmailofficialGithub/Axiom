@@ -27,7 +27,10 @@ export const list = async (req: Request, res: Response, next: NextFunction) => {
       category: req.query.category as string | undefined,
     };
 
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    console.log(`[API] list opportunities - role: ${userRole}, userId: ${userId}, filters:`, filters);
     const opportunities = await oppsService.listOpportunities(userRole, userId, filters);
+    console.log(`[API] list opportunities returned ${opportunities.length} records`);
     res.status(200).json({ data: opportunities });
   } catch (error) {
     next(error);
