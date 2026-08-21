@@ -55,3 +55,12 @@ export const grantAccess = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+export const listInvestors = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const investors = await dealRoomService.listActiveInvestors();
+    res.status(200).json({ data: investors });
+  } catch (error) {
+    next(error);
+  }
+};

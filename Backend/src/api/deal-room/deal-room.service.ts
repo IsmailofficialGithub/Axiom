@@ -118,3 +118,17 @@ export const grantAccess = async (userId: string, userRole: string, opportunityI
 
   return data;
 };
+
+export const listActiveInvestors = async () => {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, full_name, phone')
+    .eq('role', 'investor')
+    .eq('status', 'active');
+
+  if (error) {
+    throw new ApiError(500, `Failed to fetch active investors: ${error.message}`);
+  }
+
+  return data;
+};

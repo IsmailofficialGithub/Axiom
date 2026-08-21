@@ -10,6 +10,8 @@ const router = Router();
 // All deal-room routes require authentication
 router.use(authenticate);
 
+router.get('/investors', authorize('startup', 'admin'), dealRoomController.listInvestors);
+
 /**
  * @openapi
  * /api/v1/deal-room/opportunities/{opportunityId}/documents:
