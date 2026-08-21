@@ -55,7 +55,7 @@ export default function LoginPage() {
       login(resData.access_token, resData.user);
       
       toast.success("Login successful!");
-      router.push("/dashboard");
+      router.push(`/${resData.user.role}/dashboard`);
     } catch (err: any) {
       toast.error(err.message || "Something went wrong.");
     } finally {
@@ -162,7 +162,16 @@ export default function LoginPage() {
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-[var(--color-brand-emerald)] rounded-full opacity-10 animate-pulse" style={{ animationDuration: '6s' }}></div>
            <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-transparent to-transparent"></div>
            <div className="relative z-10 flex flex-col items-center max-w-sm text-center px-6">
-             <img src="/logo.png" alt="Axiomra Logo" className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.25)] transition-transform duration-700 hover:scale-105" />
+             <img 
+               src="/logo-light-theme.png" 
+               alt="Axiomra Logo" 
+               className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.15)] transition-transform duration-700 hover:scale-105 block dark:hidden" 
+             />
+             <img 
+               src="/logo-dark-theme.png" 
+               alt="Axiomra Logo" 
+               className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.25)] transition-transform duration-700 hover:scale-105 hidden dark:block" 
+             />
              <p className="text-slate-400 text-sm mt-6 font-light tracking-wide leading-relaxed">
                Connecting institutional scale capital with next-generation growth enterprises.
              </p>

@@ -62,7 +62,7 @@ export default function UserDetailPage() {
       setIsSubmitting(true);
       await fetchApi(`/admin/users/${userId}`, { method: 'DELETE' });
       toast.success("Registration request rejected and user deleted.");
-      router.push("/dashboard/users");
+      router.push("/admin/dashboard/users");
     } catch (err) {
       toast.error("Failed to reject user");
     } finally {
@@ -89,7 +89,7 @@ export default function UserDetailPage() {
     return (
       <div className="p-8 text-center bg-[#0F0F12] text-slate-400">
         <p className="mb-4">User not found or you don't have access.</p>
-        <button onClick={() => router.push("/dashboard/users")} className="text-[#00D1D1] hover:underline flex items-center justify-center mx-auto cursor-pointer">
+        <button onClick={() => router.push("/admin/dashboard/users")} className="text-[#00D1D1] hover:underline flex items-center justify-center mx-auto cursor-pointer">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to members
         </button>
       </div>
@@ -112,7 +112,7 @@ export default function UserDetailPage() {
       {/* Navigation Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <button 
-          onClick={() => router.push("/dashboard/users")} 
+          onClick={() => router.push("/admin/dashboard/users")} 
           className="flex items-center text-sm text-slate-400 hover:text-white transition-colors cursor-pointer w-fit"
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Members List

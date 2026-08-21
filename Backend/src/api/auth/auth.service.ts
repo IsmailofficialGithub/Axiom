@@ -28,7 +28,7 @@ export const registerUser = async (data: any) => {
       role,
       full_name,
       phone,
-      status: 'pending', // Institutional accounts require vetting before activation
+      status: role === 'investor' ? 'active' : 'pending', // Investors are active immediately; startups require admin vetting before activation
     });
 
   if (profileError) {

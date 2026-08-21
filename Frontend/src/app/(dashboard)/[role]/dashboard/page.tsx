@@ -150,7 +150,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 text-sm mt-1">Access institutional private placements and deal rooms.</p>
           </div>
           <Link 
-            href="/dashboard/opportunities" 
+            href="/investor/dashboard/opportunities" 
             className="flex items-center space-x-2 text-xs font-semibold bg-[#00D1D1] hover:bg-[#00B3B3] text-white px-4 py-2 rounded-lg transition-colors w-fit"
           >
             <span>Browse Startup Marketplace</span>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 bg-[#141416] border border-[#222222] rounded-xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
               <h3 className="text-sm font-semibold text-white">Your Preferred Sectors</h3>
-              <Link href="/dashboard/settings" className="text-xs text-[#00D1D1] hover:underline flex items-center">
+              <Link href="/investor/dashboard/settings" className="text-xs text-[#00D1D1] hover:underline flex items-center">
                 <Settings className="h-3 w-3 mr-1" /> Edit Preferences
               </Link>
             </div>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
           <p className="text-slate-400 text-sm mt-1">Manage deal rooms, documents, and pitch details.</p>
         </div>
         <Link 
-          href="/dashboard/opportunities" 
+          href="/startup/dashboard/opportunities" 
           className="flex items-center space-x-2 text-xs font-semibold bg-[#00D1D1] hover:bg-[#00B3B3] text-white px-4 py-2 rounded-lg transition-colors w-fit"
         >
           <span>Manage Pitch Decks</span>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
               </li>
             </ul>
           </div>
-          <Link href="/dashboard/settings" className="text-xs text-[#00D1D1] hover:underline flex items-center pt-2">
+          <Link href="/startup/dashboard/settings" className="text-xs text-[#00D1D1] hover:underline flex items-center pt-2">
             <Settings className="h-3.5 w-3.5 mr-1" /> Edit Profile & Pitch Data
           </Link>
         </div>

@@ -255,7 +255,7 @@ export default function UsersPage() {
                   </button>
                   {openDropdown === member.id && (
                     <div className="absolute right-8 top-10 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden">
-                      <button onClick={() => { router.push(`/dashboard/users/${member.id}`); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">View Details</button>
+                      <button onClick={() => { router.push(`/admin/dashboard/users/${member.id}`); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">View Details</button>
                       <button onClick={() => handleOpenEdit(member)} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Edit User</button>
                       <button onClick={() => { setPasswordModal({ isOpen: true, userId: member.id }); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Change Password</button>
                       <div className="border-t border-[#222222]"></div>
@@ -304,7 +304,7 @@ export default function UsersPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <button 
-                      onClick={() => router.push(`/dashboard/users/${invite.id}`)}
+                      onClick={() => router.push(`/admin/dashboard/users/${invite.id}`)}
                       className="flex items-center space-x-1 text-xs font-medium text-[#00D1D1] bg-[#00D1D1]/10 hover:bg-[#00D1D1]/20 px-2 py-1 rounded transition-colors cursor-pointer"
                     >
                       <span>Details</span>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { 
@@ -25,14 +25,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const routeRole = params?.role;
+
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace("/login");
+    if (!isLoading) {
+      if (!user) {
+        router.replace("/login");
+      } else if (routeRole && user.role !== routeRole) {
+        router.replace(`/${user.role}/dashboard`);
+      }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, routeRole, router]);
 
   if (isLoading || !user) {
     return (
@@ -43,27 +50,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const getNavItems = () => {
-    if (user?.role === 'admin') {
+    const role = user?.role || 'startup';
+    if (role === 'admin') {
       return [
-        { name: "General", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Members", href: "/dashboard/users", icon: Users },
-        { name: "Subsidiaries", href: "/dashboard/subsidiaries", icon: Building2 },
-        { name: "Opportunities", href: "/dashboard/opportunities", icon: Briefcase },
-        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+        { name: "General", href: "/admin/dashboard", icon: LayoutDashboard },
+        { name: "Members", href: "/admin/dashboard/users", icon: Users },
+        { name: "Subsidiaries", href: "/admin/dashboard/subsidiaries", icon: Building2 },
+        { name: "Opportunities", href: "/admin/dashboard/opportunities", icon: Briefcase },
+        { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
       ];
-    } else if (user?.role === 'investor') {
+    } else if (role === 'investor') {
       return [
-        { name: "General", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Marketplace", href: "/dashboard/opportunities", icon: Briefcase },
-        { name: "Network", href: "/dashboard/network", icon: Globe },
-        { name: "Insights", href: "/dashboard/insights", icon: BarChart },
-        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+        { name: "General", href: "/investor/dashboard", icon: LayoutDashboard },
+        { name: "Marketplace", href: "/investor/dashboard/opportunities", icon: Briefcase },
+        { name: "Network", href: "/investor/dashboard/network", icon: Globe },
+        { name: "Insights", href: "/investor/dashboard/insights", icon: BarChart },
+        { name: "Settings", href: "/investor/dashboard/settings", icon: Settings },
       ];
     } else { // startup
       return [
-        { name: "General", href: "/dashboard", icon: LayoutDashboard },
-        { name: "My Opportunities", href: "/dashboard/opportunities", icon: Briefcase },
-        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+        { name: "General", href: "/startup/dashboard", icon: LayoutDashboard },
+        { name: "My Opportunities", href: "/startup/dashboard/opportunities", icon: Briefcase },
+        { name: "Settings", href: "/startup/dashboard/settings", icon: Settings },
       ];
     }
   };

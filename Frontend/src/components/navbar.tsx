@@ -1,23 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ThemeToggle } from "./theme-toggle"
 import { usePathname } from "next/navigation"
-import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/AuthContext"
 
 export function Navbar() {
   const { user } = useAuth();
   const pathname = usePathname();
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (pathname?.startsWith("/dashboard")) {
+  if (pathname?.includes("/dashboard")) {
     return null;
   }
 
@@ -27,9 +19,14 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center">
             <img 
-              src={mounted && resolvedTheme === "light" ? "/logo-light-theme.png" : "/logo-dark-theme.png"} 
+              src="/logo-light-theme.png" 
               alt="Axiomra Logo" 
-              className="h-7 w-auto" 
+              className="h-10 w-auto block dark:hidden" 
+            />
+            <img 
+              src="/logo-dark-theme.png" 
+              alt="Axiomra Logo" 
+              className="h-10 w-auto hidden dark:block" 
             />
           </Link>
           <nav className="hidden md:flex gap-6 text-sm font-medium">
@@ -52,7 +49,7 @@ export function Navbar() {
             </>
           )}
           {user && (
-            <Link href="/dashboard" className="text-sm font-medium hover:text-[var(--color-brand-emerald)] transition-colors">
+            <Link href={`/${user.role}/dashboard`} className="text-sm font-medium hover:text-[var(--color-brand-emerald)] transition-colors">
               Dashboard
             </Link>
           )}
