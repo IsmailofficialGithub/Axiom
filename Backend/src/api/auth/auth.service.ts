@@ -1,4 +1,4 @@
-import supabaseAdmin from '../../config/supabase.config.js';
+import supabaseAdmin, { supabaseAuth } from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
 
 export const registerUser = async (data: any) => {
@@ -68,7 +68,7 @@ export const loginUser = async (data: any) => {
   const { email, password } = data;
 
   // 1. Attempt login via Supabase Auth
-  const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+  const { data: authData, error: authError } = await supabaseAuth.auth.signInWithPassword({
     email,
     password,
   });

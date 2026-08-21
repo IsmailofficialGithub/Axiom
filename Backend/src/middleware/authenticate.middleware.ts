@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import ApiError from '../utils/ApiError.js';
-import supabaseAdmin from '../config/supabase.config.js';
+import supabaseAdmin, { supabaseAuth } from '../config/supabase.config.js';
 
 // Supabase authentication middleware
 const authenticate = async (req: Request, res: Response, next: NextFunction) => {
@@ -13,7 +13,7 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
     const token = authHeader.split(' ')[1];
 
     // Verify token and get user from Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       throw new ApiError(401, 'Unauthorized: Invalid token');

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as oppsService from './opportunities.service.js';
 import ApiError from '../../utils/ApiError.js';
+import env from '../../config/env.config.js';
 
 export const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
