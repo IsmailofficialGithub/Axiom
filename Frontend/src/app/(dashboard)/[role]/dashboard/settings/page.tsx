@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { User, Lock, Mail, Phone, Shield, DollarSign, Activity, Compass, FileText } from "lucide-react";
+import { User, Lock, Mail, Phone, Shield, DollarSign, Activity, Compass, FileText, Building2 } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
