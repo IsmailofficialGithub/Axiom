@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { API_URL } from "@/lib/api";
 
 // =======================
 // SCHEMAS
@@ -62,8 +63,6 @@ const investorSchema = z.object({
   password: passwordSchema,
 });
 type InvestorFormValues = z.infer<typeof investorSchema>;
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 const getDeviceFingerprint = () => {
   if (typeof window === "undefined") return "unknown";

@@ -10,14 +10,13 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { API_URL } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address").max(100, "Email cannot exceed 100 characters"),
   password: z.string().min(1, "Password is required").max(64, "Password cannot exceed 64 characters"),
 });
 type LoginFormValues = z.infer<typeof loginSchema>;
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 const getDeviceFingerprint = () => {
   if (typeof window === "undefined") return "unknown";
