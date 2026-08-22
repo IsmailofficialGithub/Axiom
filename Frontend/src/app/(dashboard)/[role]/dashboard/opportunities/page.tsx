@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -261,7 +262,7 @@ export default function OpportunitiesPage() {
 
       // Fetch documents for the opportunity
       const docsRes = await fetchApi(`/deal-room/opportunities/${oppId}/documents`);
-      setSelectedOpp(prev => ({
+      setSelectedOpp((prev: any) => ({
         ...prev,
         documents: docsRes.data || []
       }));
@@ -592,11 +593,19 @@ export default function OpportunitiesPage() {
                       </td>
                       <td className="py-4 px-4 text-slate-400">{formatDate(opp.created_at)}</td>
                       <td className="py-4 px-4 text-slate-500 text-right relative">
-                        <button onClick={() => setOpenDropdown(openDropdown === opp.id ? null : opp.id)} className="hover:text-slate-300 p-1 rounded hover:bg-[#222222] cursor-pointer">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => handleOpenDealRoom(opp)} 
+                            className="text-xs text-[#00D1D1] bg-[#00D1D1]/10 hover:bg-[#00D1D1]/20 px-2.5 py-1.5 rounded transition-colors font-semibold cursor-pointer border border-[#00D1D1]/20"
+                          >
+                            Manage Deal Room
+                          </button>
+                          <button onClick={() => setOpenDropdown(openDropdown === opp.id ? null : opp.id)} className="hover:text-slate-300 p-1.5 rounded hover:bg-[#222222] cursor-pointer">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </div>
                         {openDropdown === opp.id && (
-                          <div className="absolute right-8 top-10 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden text-left">
+                          <div className="absolute right-8 top-12 w-48 bg-[#141416] border border-[#222222] rounded-md shadow-lg z-50 overflow-hidden text-left">
                             <button onClick={() => handleOpenEdit(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Edit placement</button>
                             <button onClick={() => handleOpenDealRoom(opp)} className="block w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-[#222222] hover:text-white cursor-pointer font-medium">Manage Deal Room</button>
                             <div className="border-t border-[#222222]"></div>
