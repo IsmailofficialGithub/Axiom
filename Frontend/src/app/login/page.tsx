@@ -164,12 +164,12 @@ export default function LoginPage() {
              <img 
                src="/logo-light-theme.png" 
                alt="Axiomra Logo" 
-               className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.15)] transition-transform duration-700 hover:scale-105 block dark:hidden" 
+               className="w-[440px] h-auto -my-12 drop-shadow-[0_0_20px_rgba(0,209,209,0.15)] transition-transform duration-700 hover:scale-105 block dark:hidden" 
              />
              <img 
                src="/logo-dark-theme.png" 
                alt="Axiomra Logo" 
-               className="w-[280px] h-auto drop-shadow-[0_0_20px_rgba(0,209,209,0.25)] transition-transform duration-700 hover:scale-105 hidden dark:block" 
+               className="w-[440px] h-auto -my-12 drop-shadow-[0_0_20px_rgba(0,209,209,0.25)] transition-transform duration-700 hover:scale-105 hidden dark:block" 
              />
              <p className="text-slate-400 text-sm mt-6 font-light tracking-wide leading-relaxed">
                Connecting institutional scale capital with next-generation growth enterprises.

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, MoreHorizontal, ChevronUp, X, Check, Filter } from "lucide-react";
+import { Search, ChevronDown, MoreHorizontal, ChevronUp, X, Check, Filter, LogIn } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, impersonate } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +69,23 @@ export default function UsersPage() {
       setOpenDropdown(null);
     } catch (err) {
       alert("Failed to delete user");
+    }
+  };
+
+  const handleImpersonate = async (member: any) => {
+    if (!window.confirm(`Are you sure you want to log in as ${member.full_name}?`)) return;
+    try {
+      setIsLoading(true);
+      const res = await fetchApi(`/admin/users/${member.id}/impersonate`, {
+        method: 'POST',
+      });
+      const { access_token, user } = res.data;
+      impersonate(access_token, user);
+      router.push(`/${user.role}/dashboard`);
+    } catch (err: any) {
+      alert(err.message || "Failed to impersonate user");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -258,6 +275,17 @@ export default function UsersPage() {
                       <button onClick={() => { router.push(`/admin/dashboard/users/${member.id}`); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">View Details</button>
                       <button onClick={() => handleOpenEdit(member)} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Edit User</button>
                       <button onClick={() => { setPasswordModal({ isOpen: true, userId: member.id }); setOpenDropdown(null); }} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-[#222222] hover:text-white">Change Password</button>
+                      
+                      {member.id !== currentUser?.id && (
+                        <button 
+                          onClick={() => { handleImpersonate(member); setOpenDropdown(null); }} 
+                          className="flex items-center w-full text-left px-4 py-2 text-sm text-[#1E90FF] hover:bg-[#222222] hover:text-white"
+                        >
+                          <LogIn className="h-4 w-4 mr-2" />
+                          <span>Login as User</span>
+                        </button>
+                      )}
+
                       <div className="border-t border-[#222222]"></div>
                       <button onClick={() => handleDelete(member.id)} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[#222222] hover:text-red-400">Delete User</button>
                     </div>

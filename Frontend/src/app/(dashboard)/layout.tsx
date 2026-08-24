@@ -18,11 +18,12 @@ import {
   LogOut,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  MessageSquare
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, isAdminImpersonating, stopImpersonating } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
@@ -57,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Members", href: "/admin/dashboard/users", icon: Users },
         { name: "Subsidiaries", href: "/admin/dashboard/subsidiaries", icon: Building2 },
         { name: "Opportunities", href: "/admin/dashboard/opportunities", icon: Briefcase },
+        { name: "Common Area", href: "/admin/dashboard/chats", icon: MessageSquare },
         { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
       ];
     } else if (role === 'investor') {
@@ -65,12 +67,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "Marketplace", href: "/investor/dashboard/opportunities", icon: Briefcase },
         { name: "Network", href: "/investor/dashboard/network", icon: Globe },
         { name: "Insights", href: "/investor/dashboard/insights", icon: BarChart },
+        { name: "Common Area", href: "/investor/dashboard/chats", icon: MessageSquare },
         { name: "Settings", href: "/investor/dashboard/settings", icon: Settings },
       ];
     } else { // startup
       return [
         { name: "General", href: "/startup/dashboard", icon: LayoutDashboard },
         { name: "My Opportunities", href: "/startup/dashboard/opportunities", icon: Briefcase },
+        { name: "Common Area", href: "/startup/dashboard/chats", icon: MessageSquare },
         { name: "Settings", href: "/startup/dashboard/settings", icon: Settings },
       ];
     }
@@ -149,6 +153,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
+        {/* Impersonation Banner */}
+        {isAdminImpersonating && (
+          <div className="bg-[#1E90FF]/15 border-b border-[#1E90FF]/30 px-4 py-2 flex items-center justify-between text-xs sm:text-sm text-slate-300 z-50">
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-[#1E90FF] animate-pulse"></span>
+              <span>Impersonating user: <strong className="text-white">{user?.full_name}</strong> ({user?.email})</span>
+            </div>
+            <button 
+              onClick={stopImpersonating}
+              className="bg-[#1E90FF] hover:bg-[#1C86EE] text-white px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Return to Admin
+            </button>
+          </div>
+        )}
+
         {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between border-b border-[#222222] p-4 bg-[#141416]">
           <span className="text-lg font-bold text-white">Axiomra Portal</span>

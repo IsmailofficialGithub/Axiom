@@ -1,8 +1,8 @@
-import supabaseAdmin from '../../config/supabase.config.js';
+import supabaseAdmin, { supabaseAuth } from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
 
 export const listAllUsers = async () => {
-  const { data, error } = await supabaseAdmin
+  const { data: profiles, error } = await supabaseAdmin
     .from('profiles')
     .select('*, startups(*), investors(*)')
     .order('created_at', { ascending: false });
@@ -11,11 +11,24 @@ export const listAllUsers = async () => {
     throw new ApiError(500, `Failed to fetch users: ${error.message}`);
   }
 
-  return data;
+  try {
+    const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    if (!authError && authUsers) {
+      const emailMap = new Map(authUsers.map(u => [u.id, u.email]));
+      return profiles.map(profile => ({
+        ...profile,
+        email: emailMap.get(profile.id) || null
+      }));
+    }
+  } catch (err) {
+    console.error("Failed to fetch auth emails", err);
+  }
+
+  return profiles;
 };
 
 export const getUserById = async (id: string) => {
-  const { data, error } = await supabaseAdmin
+  const { data: profile, error } = await supabaseAdmin
     .from('profiles')
     .select('*, startups(*), investors(*)')
     .eq('id', id)
@@ -25,7 +38,67 @@ export const getUserById = async (id: string) => {
     throw new ApiError(500, `Failed to fetch user: ${error.message}`);
   }
 
-  return data;
+  try {
+    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(id);
+    if (!authError && authUser) {
+      return {
+        ...profile,
+        email: authUser.email
+      };
+    }
+  } catch (err) {
+    console.error("Failed to fetch auth user email", err);
+  }
+
+  return profile;
+};
+
+export const impersonateUser = async (id: string) => {
+  // 1. Fetch target user profile (with merged email)
+  const profile = await getUserById(id);
+  if (!profile) {
+    throw new ApiError(404, 'User profile not found');
+  }
+
+  if (profile.status === 'suspended') {
+    throw new ApiError(403, 'Cannot impersonate a suspended user');
+  }
+
+  if (!profile.email) {
+    throw new ApiError(400, 'User email not found in authentication system');
+  }
+
+  // 2. Generate a magiclink as admin
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: profile.email,
+  });
+
+  if (linkError || !linkData.properties?.hashed_token) {
+    throw new ApiError(500, `Failed to generate login link: ${linkError?.message || 'Token not found'}`);
+  }
+
+  // 3. Verify OTP using the hashed token to get a session
+  const { data: verifyData, error: verifyError } = await supabaseAuth.auth.verifyOtp({
+    token_hash: linkData.properties.hashed_token,
+    type: 'magiclink',
+  });
+
+  if (verifyError || !verifyData.session || !verifyData.user) {
+    throw new ApiError(500, `Failed to establish session: ${verifyError?.message || 'Session not established'}`);
+  }
+
+  return {
+    access_token: verifyData.session.access_token,
+    refresh_token: verifyData.session.refresh_token,
+    user: {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role,
+      full_name: profile.full_name,
+      status: profile.status,
+    },
+  };
 };
 
 export const listSubsidiaries = async () => {

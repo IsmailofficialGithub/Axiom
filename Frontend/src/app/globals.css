@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-emerald: #00D1D1;
   --color-brand-emerald-hover: #00B3B3;

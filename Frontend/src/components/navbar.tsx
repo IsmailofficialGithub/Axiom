@@ -21,12 +21,12 @@ export function Navbar() {
             <img 
               src="/logo-light-theme.png" 
               alt="Axiomra Logo" 
-              className="h-10 w-auto block dark:hidden" 
+              className="h-24 w-auto -my-7 block dark:hidden" 
             />
             <img 
               src="/logo-dark-theme.png" 
               alt="Axiomra Logo" 
-              className="h-10 w-auto hidden dark:block" 
+              className="h-24 w-auto -my-7 hidden dark:block" 
             />
           </Link>
           <nav className="hidden md:flex gap-6 text-sm font-medium">

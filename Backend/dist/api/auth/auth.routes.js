@@ -3,19 +3,13 @@ import validate from '../../middleware/validate.middleware.js';
 import authenticate from '../../middleware/authenticate.middleware.js';
 import { loginSchema, registerSchema, updateProfileSchema, updatePasswordSchema } from './auth.dto.js';
 import * as authController from './auth.controller.js';
-
 import rateLimit from 'express-rate-limit';
-import env from '../../config/env.config.js';
-
 const router = Router();
-
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per window
-  message: { message: 'Too many login attempts, please try again after 15 minutes' },
-  skip: () => env.NODE_ENV === 'development' || env.NODE_ENV === 'test',
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 login requests per window
+    message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
-
 /**
  * @openapi
  * /api/v1/auth/register:
@@ -48,7 +42,6 @@ const loginLimiter = rateLimit({
  *         description: User registered successfully
  */
 router.post('/register', validate(registerSchema), authController.register);
-
 /**
  * @openapi
  * /api/v1/auth/login:
@@ -80,11 +73,9 @@ router.post('/register', validate(registerSchema), authController.register);
  *         description: Successful login
  */
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
-
 // Protected routes
 // The getMe route requires a valid JWT
 router.get('/me', authenticate, authController.getMe);
 router.patch('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile);
 router.patch('/password', authenticate, validate(updatePasswordSchema), authController.updatePassword);
-
 export default router;

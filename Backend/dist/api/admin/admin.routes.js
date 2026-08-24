@@ -4,12 +4,9 @@ import authenticate from '../../middleware/authenticate.middleware.js';
 import authorize from '../../middleware/authorize.middleware.js';
 import { createSubsidiarySchema, updateUserSchema, updateUserPasswordSchema, createUserSchema, updateSubsidiarySchema, createOpportunitySchema, updateOpportunitySchema } from './admin.dto.js';
 import * as adminController from './admin.controller.js';
-
 const router = Router();
-
 // All admin routes require authentication and the 'admin' role
 router.use(authenticate, authorize('admin'));
-
 /**
  * @openapi
  * /api/v1/admin/stats:
@@ -23,7 +20,6 @@ router.use(authenticate, authorize('admin'));
  *         description: Dashboard statistics
  */
 router.get('/stats', adminController.getAdminStats);
-
 /**
  * @openapi
  * /api/v1/admin/users:
@@ -47,7 +43,6 @@ router.get('/stats', adminController.getAdminStats);
 router.get('/users', adminController.listUsers);
 router.get('/users/:id', adminController.getUserDetails);
 router.post('/users', validate(createUserSchema), adminController.createUser);
-
 /**
  * @openapi
  * /api/v1/admin/subsidiaries:
@@ -84,7 +79,6 @@ router.post('/users', validate(createUserSchema), adminController.createUser);
  */
 router.get('/subsidiaries', adminController.listSubsidiaries);
 router.post('/subsidiaries', validate(createSubsidiarySchema), adminController.createSubsidiary);
-
 /**
  * @openapi
  * /api/v1/admin/subsidiaries/{id}:
@@ -119,7 +113,6 @@ router.post('/subsidiaries', validate(createSubsidiarySchema), adminController.c
  */
 router.patch('/subsidiaries/:id', validate(updateSubsidiarySchema), adminController.updateSubsidiary);
 router.delete('/subsidiaries/:id', adminController.deleteSubsidiary);
-
 /**
  * @openapi
  * /api/v1/admin/users/{id}:
@@ -139,7 +132,6 @@ router.delete('/subsidiaries/:id', adminController.deleteSubsidiary);
  *         description: User updated successfully
  */
 router.patch('/users/:id', validate(updateUserSchema), adminController.updateUser);
-
 /**
  * @openapi
  * /api/v1/admin/opportunities:
@@ -162,7 +154,6 @@ router.patch('/users/:id', validate(updateUserSchema), adminController.updateUse
  */
 router.get('/opportunities', adminController.listOpportunities);
 router.post('/opportunities', validate(createOpportunitySchema), adminController.createOpportunity);
-
 /**
  * @openapi
  * /api/v1/admin/opportunities/{id}:
@@ -185,7 +176,6 @@ router.post('/opportunities', validate(createOpportunitySchema), adminController
  */
 router.patch('/opportunities/:id', validate(updateOpportunitySchema), adminController.updateOpportunity);
 router.delete('/opportunities/:id', adminController.deleteOpportunity);
-
 /**
  * @openapi
  * /api/v1/admin/users/{id}:
@@ -205,7 +195,6 @@ router.delete('/opportunities/:id', adminController.deleteOpportunity);
  *         description: User deleted successfully
  */
 router.delete('/users/:id', adminController.deleteUser);
-
 /**
  * @openapi
  * /api/v1/admin/users/{id}/password:
@@ -226,5 +215,4 @@ router.delete('/users/:id', adminController.deleteUser);
  */
 router.post('/users/:id/password', validate(updateUserPasswordSchema), adminController.updateUserPassword);
 router.post('/users/:id/impersonate', adminController.impersonateUser);
-
 export default router;
