@@ -13,3 +13,12 @@ export const postMessageSchema = {
     message: z.string().min(1, 'Message cannot be empty'),
   }),
 };
+
+export const updateChatSettingsSchema = {
+  body: z.object({
+    status: z.enum(['active', 'paused']).optional(),
+    admin_only: z.boolean().optional(),
+    is_startup_blocked: z.boolean().optional(),
+    is_investor_blocked: z.boolean().optional(),
+  }),
+};

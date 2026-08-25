@@ -68,3 +68,17 @@ export const postMessage = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+export const updateSettings = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const adminId = req.user!.id;
+    const settings = req.body;
+    const room = await chatsService.updateChatSettings(req.params.id as string, adminId, settings);
+    res.status(200).json({
+      message: 'Chat settings updated successfully',
+      data: room,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
