@@ -47,6 +47,7 @@ const startupSchema = z.object({
   primaryUseOfFunds: z.string().max(500).optional(),
   previousFunding: z.string().max(20).optional(),
   // Step 4: Custom Q&A
+  dynamicQa: z.record(z.string(), z.string()).optional(),
   customQa: z.array(z.object({
     key: z.string().min(1, "Question cannot be empty"),
     value: z.string().min(1, "Answer cannot be empty")
@@ -67,6 +68,33 @@ type InvestorFormValues = z.infer<typeof investorSchema>;
 const getDeviceFingerprint = () => {
   if (typeof window === "undefined") return "unknown";
   return btoa(navigator.userAgent + window.screen.width + window.screen.height).substring(0, 32);
+};
+
+const STAGE_QUESTIONS: Record<string, string[]> = {
+  "pre-seed": [
+    "Problem & Value Proposition: What is the core customer problem you are solving, and what is your unique value proposition?",
+    "Target Audience & TAM: Who is the primary customer profile, and what is your estimated Total Addressable Market (TAM)?",
+    "Prototype & MVP Status: Do you have a working prototype or Minimum Viable Product? If yes, what is the initial feedback or user count?",
+    "Founder Team Background: What unique skills/domain expertise does the founding team possess that makes you the right group to solve this?"
+  ],
+  "seed": [
+    "Customer Acquisition Cost (CAC) & LTV: What is your estimated Customer Acquisition Cost (CAC) and Lifetime Value (LTV) if known?",
+    "Primary Growth Channel: What is your primary customer acquisition or growth channel (e.g. outbound sales, product-led growth, partnerships)?",
+    "MoM Growth Rate: What has been your average month-over-month (MoM) user or revenue growth rate over the last 3-6 months?",
+    "Co-founders & Full-time Hires: How many full-time employees are currently on the team, and what is the next critical hire post-funding?"
+  ],
+  "series-a": [
+    "Sales Pipeline & Sales Cycle Length: What is the size of your current enterprise sales pipeline, and what is the average sales cycle length?",
+    "Net Revenue Retention (NRR): What is your Net Revenue Retention (NRR) or Gross Churn rate over the last 12 months?",
+    "Regulatory or IP Moat: Do you possess any proprietary IP, patents, or regulatory barriers (e.g. FDA, HIPAA, SOC2)?",
+    "Key Milestones for Series B: What specific milestones (e.g. ARR target, international expansion) will this Series A round unlock for a Series B?"
+  ],
+  "series-b": [
+    "International Expansion Strategy: Which new geographic markets are you planning to enter next, and what is the localized strategy?",
+    "LTV/CAC Efficiency Multiple: What is your current LTV/CAC ratio or Magic Number (sales efficiency metric)?",
+    "M&A or Corporate Development plans: Are there any strategic partnership, acquisition, or M&A opportunities you are targeting with this capital?",
+    "EBITDA / Path to Profitability: What is your projected timeline to reach EBITDA positive or break-even operations?"
+  ]
 };
 
 // =======================
@@ -94,6 +122,8 @@ export default function RegisterPage() {
     control: startupForm.control,
     name: "customQa"
   });
+
+  const selectedStage = startupForm.watch("stage");
 
   const investorForm = useForm<InvestorFormValues>({
     resolver: zodResolver(investorSchema),
@@ -129,8 +159,19 @@ export default function RegisterPage() {
   const parseNumeric = (val: string | undefined) => val ? Number(val) : undefined;
 
   const onStartupSubmit = (data: StartupFormValues) => {
-    // Format custom QA array into an object/record
+    const selectedStage = data.stage;
+    const stageQuestions = STAGE_QUESTIONS[selectedStage] || [];
     const formattedQa: Record<string, string> = {};
+
+    if (data.dynamicQa) {
+      stageQuestions.forEach((qText, idx) => {
+        const answer = (data.dynamicQa as any)[`q${idx}`];
+        if (answer) {
+          formattedQa[qText] = answer;
+        }
+      });
+    }
+
     if (data.customQa) {
       data.customQa.forEach(item => {
         formattedQa[item.key] = item.value;
@@ -383,6 +424,49 @@ export default function RegisterPage() {
 
           {/* STEP 4 */}
           <div className={currentStep === 4 ? "block animate-in fade-in duration-300" : "hidden"}>
+            
+            {/* Dynamic Stage-Specific Questionnaire */}
+            {selectedStage && STAGE_QUESTIONS[selectedStage] && (
+              <div className="mb-8 space-y-6 border-b border-slate-200 dark:border-slate-800 pb-8">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand-emerald)]/10 text-[var(--color-brand-emerald)] text-xs font-bold font-mono">
+                    i
+                  </div>
+                  <h5 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                    Stage-Specific Strategic Questionnaire ({selectedStage.toUpperCase()})
+                  </h5>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">
+                  These professional business questions help investors evaluate your startup's traction and operational alignment.
+                </p>
+                <div className="grid grid-cols-1 gap-6 bg-slate-50 dark:bg-slate-900/30 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {STAGE_QUESTIONS[selectedStage].map((qText, index) => {
+                    const colonIdx = qText.indexOf(":");
+                    const label = qText.substring(0, colonIdx);
+                    const subLabel = qText.substring(colonIdx + 1).trim();
+
+                    return (
+                      <div key={index} className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+                          {label}
+                          <span className="block text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                            {subLabel}
+                          </span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          maxLength={500}
+                          {...register(`dynamicQa.q${index}` as const)}
+                          placeholder="Provide details..."
+                          className="block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm focus:border-[var(--color-brand-emerald)] focus:ring-1 focus:ring-[var(--color-brand-emerald)]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-semibold">4. Public Custom Q&A</h4>
               <button 
