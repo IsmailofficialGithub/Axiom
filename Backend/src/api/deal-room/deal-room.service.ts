@@ -1,5 +1,6 @@
 import supabaseAdmin from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
+import { anonymizeText } from '../opportunities/opportunities.service.js';
 
 // Helper to verify a user owns an opportunity
 const verifyOpportunityOwnership = async (userId: string, userRole: string, opportunityId: string) => {
@@ -92,6 +93,24 @@ export const listDocuments = async (opportunityId: string, userRole: string, use
 
     const { data, error } = await query;
     if (error) throw new ApiError(500, 'Failed to list documents');
+
+    if (data && data.length > 0) {
+      const { data: oppCompany } = await supabaseAdmin
+        .from('opportunities')
+        .select('company_id, companies (company_name, id)')
+        .eq('id', opportunityId)
+        .single() as any;
+
+      if (oppCompany?.companies) {
+        const realName = oppCompany.companies.company_name;
+        const anonName = `Startup #${oppCompany.companies.id.substring(0, 8)}`;
+        
+        data.forEach((doc: any) => {
+          doc.file_type = anonymizeText(doc.file_type, realName, anonName);
+        });
+      }
+    }
+
     return data;
   }
 

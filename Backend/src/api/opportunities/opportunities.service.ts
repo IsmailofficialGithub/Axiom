@@ -1,6 +1,13 @@
 import supabaseAdmin from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
 
+export const anonymizeText = (text: string, realName: string, anonName: string) => {
+  if (!text || !realName) return text;
+  const escapedName = realName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const regex = new RegExp(escapedName, 'gi');
+  return text.replace(regex, anonName);
+};
+
 export const createOpportunity = async (userId: string, data: any) => {
   // 1. Fetch the user's company (startups must have onboarded to create deals)
   const { data: company, error: companyError } = await supabaseAdmin
@@ -78,7 +85,13 @@ export const listOpportunities = async (userRole: string, userId: string, filter
   if (userRole === 'investor' && data) {
     data.forEach((opp: any) => {
       if (opp.companies) {
-        opp.companies.company_name = `Startup #${opp.companies.id.substring(0, 8)}`;
+        const realName = opp.companies.company_name;
+        const anonName = `Startup #${opp.companies.id.substring(0, 8)}`;
+        
+        opp.companies.company_name = anonName;
+        opp.title = anonymizeText(opp.title, realName, anonName);
+        opp.description = anonymizeText(opp.description, realName, anonName);
+        
         if (opp.companies.profiles) {
           delete opp.companies.profiles.full_name;
           delete opp.companies.profiles.phone;
@@ -122,7 +135,13 @@ export const getOpportunityById = async (id: string, userRole: string, userId: s
   // Anonymize startup information for investors
   if (userRole === 'investor' && data) {
     if (data.companies) {
-      data.companies.company_name = `Startup #${data.companies.id.substring(0, 8)}`;
+      const realName = data.companies.company_name;
+      const anonName = `Startup #${data.companies.id.substring(0, 8)}`;
+      
+      data.companies.company_name = anonName;
+      data.title = anonymizeText(data.title, realName, anonName);
+      data.description = anonymizeText(data.description, realName, anonName);
+      
       delete data.companies.website;
       if (data.companies.profiles) {
         delete data.companies.profiles.full_name;
