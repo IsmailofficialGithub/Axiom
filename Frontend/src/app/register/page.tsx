@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Rocket, Briefcase, Eye, EyeOff, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Rocket, Briefcase, Eye, EyeOff, Plus, Trash2, CheckCircle2, Info } from "lucide-react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -424,6 +424,12 @@ export default function RegisterPage() {
 
           {/* STEP 4 */}
           <div className={currentStep === 4 ? "block animate-in fade-in duration-300" : "hidden"}>
+            <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-lg mb-6 text-xs leading-relaxed flex items-start gap-2 select-none">
+              <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>Visibility Notice</strong>: All questionnaire answers in this section will be shared with verified investors browsing the Marketplace. To prevent offline deals, your startup's legal name, website, and founders' details will remain strictly anonymized (e.g. displayed as <em>Startup #a8b2c3d4</em>).
+              </div>
+            </div>
             
             {/* Dynamic Stage-Specific Questionnaire */}
             {selectedStage && STAGE_QUESTIONS[selectedStage] && (
@@ -468,7 +474,7 @@ export default function RegisterPage() {
             )}
 
             <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-semibold">4. Public Custom Q&A</h4>
+              <h4 className="text-lg font-semibold">4. Additional Custom Q&A</h4>
               <button 
                 type="button" 
                 onClick={() => appendQa({ key: "", value: "" })}
