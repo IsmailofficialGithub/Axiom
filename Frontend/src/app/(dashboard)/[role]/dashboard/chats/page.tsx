@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchApi } from "@/lib/api";
 import { 
   MessageSquare, Plus, Send, Info, X, User, 
-  Building2, Calendar, DollarSign, Activity, FileText 
+  Building2, Calendar, DollarSign, Activity, FileText,
+  Shield, Ban, Pause, Play, Lock, ShieldAlert, Trash2
 } from "lucide-react";
 
 export default function ChatsPage() {
@@ -28,6 +29,72 @@ export default function ChatsPage() {
     investor_id: "",
     startup_id: ""
   });
+
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+
+  const handleUpdateSetting = async (key: string, value: any) => {
+    if (!selectedRoom) return;
+    try {
+      setIsUpdatingSettings(true);
+      const updatedSettings = {
+        [key]: value
+      };
+      
+      const res = await fetchApi(`/chats/${selectedRoom.id}/settings`, {
+        method: 'PATCH',
+        body: JSON.stringify(updatedSettings)
+      });
+      
+      // Update selected room state
+      setSelectedRoom(res.data);
+      
+      // Update rooms list state so it syncs up
+      setRooms(prevRooms => prevRooms.map(r => r.id === selectedRoom.id ? { ...r, ...res.data } : r));
+    } catch (err: any) {
+      alert(err.message || "Failed to update chat settings");
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+
+  const isChatPaused = selectedRoom?.status === 'paused';
+  const isAdminOnly = selectedRoom?.admin_only;
+  const isStartupBlocked = selectedRoom?.is_startup_blocked;
+  const isInvestorBlocked = selectedRoom?.is_investor_blocked;
+
+  const isCurrentUserBlocked = () => {
+    if (!selectedRoom || !user) return false;
+    
+    // Admins are never blocked by moderation settings
+    if (user.role === 'admin') return false;
+    
+    if (isChatPaused) return true;
+    if (isAdminOnly) return true;
+    
+    if (user.role === 'startup' && isStartupBlocked) return true;
+    if (user.role === 'investor' && isInvestorBlocked) return true;
+    
+    return false;
+  };
+
+  const getBlockedReason = () => {
+    if (!selectedRoom || !user) return "";
+    if (user.role === 'admin') return "";
+
+    if (isChatPaused) {
+      return "This conversation is temporarily paused by the admin.";
+    }
+    if (isAdminOnly) {
+      return "This chat is currently in admin-only mode.";
+    }
+    if (user.role === 'startup' && isStartupBlocked) {
+      return "You have been blocked from sending messages in this chat.";
+    }
+    if (user.role === 'investor' && isInvestorBlocked) {
+      return "You have been blocked from sending messages in this chat.";
+    }
+    return "";
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +241,17 @@ export default function ChatsPage() {
       alert("Failed to delete chat room");
     }
   };
+  // Delete Message (Admin only)
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!window.confirm("Are you sure you want to delete this message?")) return;
+
+    try {
+      await fetchApi(`/chats/messages/${messageId}`, { method: 'DELETE' });
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    } catch (err) {
+      alert("Failed to delete message");
+    }
+  };
 
   const getSenderName = (senderId: string) => {
     if (senderId === user?.id) return "You";
@@ -298,7 +376,7 @@ export default function ChatsPage() {
                   return (
                     <div 
                       key={msg.id} 
-                      className={`flex items-start space-x-3 max-w-xl ${isOwnMessage ? "ml-auto flex-row-reverse space-x-reverse" : ""}`}
+                      className={`flex items-start space-x-3 max-w-xl group ${isOwnMessage ? "ml-auto flex-row-reverse space-x-reverse" : ""}`}
                     >
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                         isOwnMessage 
@@ -327,6 +405,17 @@ export default function ChatsPage() {
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
+
+                      {user?.role === 'admin' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer self-center flex-shrink-0"
+                          title="Delete message"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   );
                 })
@@ -334,18 +423,26 @@ export default function ChatsPage() {
               <div ref={messagesEndRef} />
             </div>
 
+            {isCurrentUserBlocked() && (
+              <div className="mx-4 mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center space-x-2 text-xs text-red-400">
+                <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-500 animate-pulse" />
+                <span>{getBlockedReason()}</span>
+              </div>
+            )}
+
             {/* Input Form */}
             <form onSubmit={handleSendMessage} className="p-4 bg-[#141416] border-t border-[#222222] flex items-center space-x-2 flex-shrink-0">
               <input 
                 type="text" 
-                placeholder="Type your message here..."
+                placeholder={isCurrentUserBlocked() ? getBlockedReason() : "Type your message here..."}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1 bg-[#0F0F12] border border-[#222222] rounded-md px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-[#1E90FF]"
+                disabled={isCurrentUserBlocked()}
+                className="flex-1 bg-[#0F0F12] border border-[#222222] rounded-md px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-[#1E90FF] disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button 
                 type="submit"
-                disabled={!newMessage.trim()}
+                disabled={!newMessage.trim() || isCurrentUserBlocked()}
                 className="p-2.5 bg-[#1E90FF] hover:bg-[#1C86EE] text-white rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Send className="h-4 w-4" />
@@ -420,6 +517,133 @@ export default function ChatsPage() {
           ) : (
             <div className="text-center py-10 text-xs text-slate-500 bg-[#0F0F12] border border-[#222222] rounded-lg">
               Startup details not onboarded yet.
+            </div>
+          )}
+
+          {user?.role === 'admin' && (
+            <div className="space-y-4 border-t border-[#222222] pt-6">
+              <div className="flex items-center space-x-2 border-b border-[#222222] pb-3">
+                <Shield className="h-5 w-5 text-amber-500" />
+                <h3 className="text-sm font-semibold text-white">Moderation Controls</h3>
+              </div>
+              
+              <div className="space-y-3.5">
+                {/* 1. Pause Conversation */}
+                <div className="bg-[#1C1C1E] border border-[#2D2D30] rounded-xl p-3.5 transition-all hover:border-[#1E90FF]/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Pause className={`h-4 w-4 ${isChatPaused ? 'text-red-500 animate-pulse' : 'text-slate-400'}`} />
+                      <span className="text-xs font-semibold text-white">Pause Room</span>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                      isChatPaused ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'
+                    }`}>
+                      {isChatPaused ? 'Paused' : 'Active'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mb-3">Stops message flow for both startup and investor.</p>
+                  <button
+                    type="button"
+                    disabled={isUpdatingSettings}
+                    onClick={() => handleUpdateSetting('status', isChatPaused ? 'active' : 'paused')}
+                    className={`w-full py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      isChatPaused 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                        : 'bg-amber-600 hover:bg-amber-700 text-white'
+                    }`}
+                  >
+                    {isChatPaused ? 'Resume Room' : 'Pause Room'}
+                  </button>
+                </div>
+
+                {/* 2. Admin Only Mode */}
+                <div className="bg-[#1C1C1E] border border-[#2D2D30] rounded-xl p-3.5 transition-all hover:border-[#1E90FF]/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Lock className={`h-4 w-4 ${isAdminOnly ? 'text-amber-500' : 'text-slate-400'}`} />
+                      <span className="text-xs font-semibold text-white">Admin-Only</span>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                      isAdminOnly ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
+                    }`}>
+                      {isAdminOnly ? 'Enabled' : 'Off'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mb-3">Only administrators can send messages.</p>
+                  <button
+                    type="button"
+                    disabled={isUpdatingSettings}
+                    onClick={() => handleUpdateSetting('admin_only', !isAdminOnly)}
+                    className={`w-full py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      isAdminOnly 
+                        ? 'bg-slate-700 hover:bg-slate-600 text-white' 
+                        : 'bg-[#1E90FF] hover:bg-[#1C86EE] text-white'
+                    }`}
+                  >
+                    {isAdminOnly ? 'Disable Admin-Only' : 'Enable Admin-Only'}
+                  </button>
+                </div>
+
+                {/* 3. Block Startup */}
+                <div className="bg-[#1C1C1E] border border-[#2D2D30] rounded-xl p-3.5 transition-all hover:border-[#1E90FF]/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <Ban className={`h-4 w-4 ${isStartupBlocked ? 'text-red-500' : 'text-slate-400'}`} />
+                      <span className="text-xs font-semibold text-white truncate">Block Startup</span>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0 ${
+                      isStartupBlocked ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
+                    }`}>
+                      {isStartupBlocked ? 'Blocked' : 'Allowed'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mb-3 truncate">
+                    Restrict {selectedRoom.startup?.full_name || 'Startup'} from messaging.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isUpdatingSettings}
+                    onClick={() => handleUpdateSetting('is_startup_blocked', !isStartupBlocked)}
+                    className={`w-full py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      isStartupBlocked 
+                        ? 'bg-slate-700 hover:bg-slate-600 text-white' 
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
+                  >
+                    {isStartupBlocked ? 'Unblock Startup' : 'Block Startup'}
+                  </button>
+                </div>
+
+                {/* 4. Block Investor */}
+                <div className="bg-[#1C1C1E] border border-[#2D2D30] rounded-xl p-3.5 transition-all hover:border-[#1E90FF]/40">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <Ban className={`h-4 w-4 ${isInvestorBlocked ? 'text-red-500' : 'text-slate-400'}`} />
+                      <span className="text-xs font-semibold text-white truncate">Block Investor</span>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0 ${
+                      isInvestorBlocked ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
+                    }`}>
+                      {isInvestorBlocked ? 'Blocked' : 'Allowed'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mb-3 truncate">
+                    Restrict {selectedRoom.investor?.full_name || 'Investor'} from messaging.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isUpdatingSettings}
+                    onClick={() => handleUpdateSetting('is_investor_blocked', !isInvestorBlocked)}
+                    className={`w-full py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      isInvestorBlocked 
+                        ? 'bg-slate-700 hover:bg-slate-600 text-white' 
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
+                  >
+                    {isInvestorBlocked ? 'Unblock Investor' : 'Block Investor'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

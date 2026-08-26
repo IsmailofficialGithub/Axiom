@@ -210,7 +210,7 @@ export const postMessage = async (roomId: string, senderId: string, role: string
   const room = await getChatRoomById(roomId, senderId, role);
 
   // Apply moderation rules
-  if (room.status === 'paused') {
+  if (room.status === 'paused' && role !== 'admin') {
     throw new ApiError(403, 'This conversation is temporarily paused');
   }
 
@@ -272,5 +272,18 @@ export const updateChatSettings = async (roomId: string, adminId: string, settin
   }
 
   return updatedRoom;
+};
+
+export const deleteChatMessage = async (messageId: string) => {
+  const { error } = await supabaseAdmin
+    .from('chat_messages')
+    .delete()
+    .eq('id', messageId);
+
+  if (error) {
+    throw new ApiError(500, `Failed to delete chat message: ${error.message}`);
+  }
+
+  return { success: true };
 };
 

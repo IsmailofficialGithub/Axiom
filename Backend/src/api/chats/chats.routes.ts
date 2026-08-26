@@ -31,4 +31,7 @@ router.delete('/:id', authorize('admin'), chatsController.deleteRoom);
 // 7. Update chat settings (Admin only)
 router.patch('/:id/settings', authorize('admin'), validate(updateChatSettingsSchema), chatsController.updateSettings);
 
+// 8. Delete a chat message (Admin only)
+router.delete('/messages/:messageId', authorize('admin'), chatsController.deleteMessage);
+
 export default router;

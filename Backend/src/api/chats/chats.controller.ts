@@ -82,3 +82,15 @@ export const updateSettings = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const deleteMessage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { messageId } = req.params;
+    await chatsService.deleteChatMessage(messageId as string);
+    res.status(200).json({
+      message: 'Chat message deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
