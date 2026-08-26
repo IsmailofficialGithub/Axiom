@@ -38,9 +38,12 @@ export const listOpportunities = async (userRole: string, userId: string, filter
     .select(`
       *, 
       companies (
+        id,
         company_name, 
         industry, 
         profiles (
+          id,
+          full_name,
           startups (
             stage, 
             current_arr, 
@@ -69,6 +72,19 @@ export const listOpportunities = async (userRole: string, userId: string, filter
 
   if (error) {
     throw new ApiError(500, `Failed to fetch opportunities: ${error.message}`);
+  }
+
+  // Anonymize startup information for investors
+  if (userRole === 'investor' && data) {
+    data.forEach((opp: any) => {
+      if (opp.companies) {
+        opp.companies.company_name = `Startup #${opp.companies.id.substring(0, 8)}`;
+        if (opp.companies.profiles) {
+          delete opp.companies.profiles.full_name;
+          delete opp.companies.profiles.phone;
+        }
+      }
+    });
   }
 
   return data;
@@ -101,6 +117,18 @@ export const getOpportunityById = async (id: string, userRole: string, userId: s
   // Startups can only view their own
   if (userRole === 'startup' && data.created_by !== userId) {
     throw new ApiError(403, 'You do not have permission to view this opportunity');
+  }
+
+  // Anonymize startup information for investors
+  if (userRole === 'investor' && data) {
+    if (data.companies) {
+      data.companies.company_name = `Startup #${data.companies.id.substring(0, 8)}`;
+      delete data.companies.website;
+      if (data.companies.profiles) {
+        delete data.companies.profiles.full_name;
+        delete data.companies.profiles.phone;
+      }
+    }
   }
 
   return data;

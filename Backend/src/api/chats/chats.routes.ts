@@ -2,7 +2,7 @@ import { Router } from 'express';
 import validate from '../../middleware/validate.middleware.js';
 import authenticate from '../../middleware/authenticate.middleware.js';
 import authorize from '../../middleware/authorize.middleware.js';
-import { createChatRoomSchema, postMessageSchema } from './chats.dto.js';
+import { createChatRoomSchema, postMessageSchema, updateChatSettingsSchema } from './chats.dto.js';
 import * as chatsController from './chats.controller.js';
 
 const router = Router();
@@ -27,5 +27,8 @@ router.post('/', authorize('admin'), validate(createChatRoomSchema), chatsContro
 
 // 6. Delete a chat room (Admin only)
 router.delete('/:id', authorize('admin'), chatsController.deleteRoom);
+
+// 7. Update chat settings (Admin only)
+router.patch('/:id/settings', authorize('admin'), validate(updateChatSettingsSchema), chatsController.updateSettings);
 
 export default router;
