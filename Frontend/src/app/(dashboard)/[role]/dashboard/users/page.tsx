@@ -17,6 +17,10 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Modal States
   const [editModal, setEditModal] = useState<{isOpen: boolean, user: any | null}>({ isOpen: false, user: null });
   const [passwordModal, setPasswordModal] = useState<{isOpen: boolean, userId: string | null}>({ isOpen: false, userId: null });
@@ -60,6 +64,15 @@ export default function UsersPage() {
 
   const activeMembers = filteredUsers.filter(u => u.status !== 'pending');
   const pendingInvites = filteredUsers.filter(u => u.status === 'pending');
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(activeMembers.length / itemsPerPage);
+  const paginatedMembers = activeMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to completely delete this user? This cannot be undone.")) return;
@@ -248,7 +261,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody className="text-sm">
-            {activeMembers.map((member) => (
+            {paginatedMembers.map((member) => (
               <tr key={member.id} className="border-b border-[#222222] hover:bg-[#141416]/50 transition-colors">
                 <td className="py-4 px-4 text-slate-300 flex items-center space-x-3">
                   <div className="h-8 w-8 rounded-full bg-[#2A2A2D] flex items-center justify-center text-xs font-semibold text-[#1E90FF]">
@@ -296,6 +309,31 @@ export default function UsersPage() {
           </tbody>
         </table>
         {activeMembers.length === 0 && <div className="text-center py-8 text-slate-500">No members found matching your search.</div>}
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-[#141416] border-t border-[#222222]">
+            <div className="text-sm text-slate-400">
+              Showing <span className="font-medium text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-white">{Math.min(currentPage * itemsPerPage, activeMembers.length)}</span> of <span className="font-medium text-white">{activeMembers.length}</span> members
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md text-sm font-medium text-slate-300 bg-[#222222] hover:bg-[#2A2A2D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md text-sm font-medium text-slate-300 bg-[#222222] hover:bg-[#2A2A2D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pending Invites */}
