@@ -25,7 +25,7 @@ const firstNames = ['James', 'Emma', 'Oliver', 'Sophia', 'William', 'Isabella', 
 const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
 const firms = ['Capital', 'Ventures', 'Partners', 'Holdings', 'Group', 'Investments', 'Fund', 'Equity'];
 
-const industries = ['SaaS', 'Fintech', 'Healthtech', 'AI/ML', 'E-commerce', 'CleanTech', 'EdTech', 'Cybersecurity', 'Web3', 'Logistics'];
+const industries = ['saas', 'fintech', 'ai_ml', 'healthcare', 'e_commerce', 'cleantech', 'web3', 'deeptech'];
 
 function generateName() {
   const first = firstNames[Math.floor(Math.random() * firstNames.length)];

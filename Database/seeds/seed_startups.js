@@ -36,7 +36,7 @@ const nouns = [
   'Engine', 'Forge', 'Foundry', 'Hive', 'Loop', 'Mind', 'Net', 'Nexus', 'Space', 'Vault'
 ];
 
-const industries = ['SaaS', 'Fintech', 'Healthtech', 'AI/ML', 'E-commerce', 'CleanTech', 'EdTech', 'Cybersecurity', 'Web3', 'Logistics'];
+const industries = ['fintech', 'healthcare', 'saas', 'e_commerce', 'cleantech'];
 const stages = ['Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C'];
 const revenueModels = ['Subscription', 'Transactional', 'Marketplace', 'Advertising', 'Licensing'];
 const fundUses = ['Product Development', 'Sales & Marketing', 'Team Expansion', 'Market Expansion', 'Operations'];

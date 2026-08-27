@@ -73,12 +73,25 @@ export const getUserProfile = async (userId: string, role: string) => {
       .single();
     details = data;
   } else if (role === 'startup') {
-    const { data } = await supabaseAdmin
+    const { data: startupData } = await supabaseAdmin
       .from('startups')
       .select('*')
       .eq('id', userId)
       .single();
-    details = data;
+    
+    // Also fetch description from companies table
+    const { data: companyData } = await supabaseAdmin
+      .from('companies')
+      .select('description')
+      .eq('profile_id', userId)
+      .maybeSingle();
+
+    if (startupData) {
+      details = {
+        ...startupData,
+        description: companyData?.description || ''
+      };
+    }
   }
 
   return {
