@@ -31,7 +31,6 @@ export function Navbar() {
           </Link>
           <nav className="hidden md:flex gap-6 text-sm font-medium">
             <Link href="/opportunities" className="transition-colors hover:text-[var(--color-brand-emerald)]">Opportunities</Link>
-            <Link href="/network" className="transition-colors hover:text-[var(--color-brand-emerald)]">Network</Link>
             <Link href="/insights" className="transition-colors hover:text-[var(--color-brand-emerald)]">Insights</Link>
           </nav>
         </div>

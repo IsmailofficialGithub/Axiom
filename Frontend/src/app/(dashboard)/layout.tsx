@@ -65,7 +65,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return [
         { name: "General", href: "/investor/dashboard", icon: LayoutDashboard },
         { name: "Marketplace", href: "/investor/dashboard/opportunities", icon: Briefcase },
-        { name: "Network", href: "/investor/dashboard/network", icon: Globe },
         { name: "Insights", href: "/investor/dashboard/insights", icon: BarChart },
         { name: "Common Area", href: "/investor/dashboard/chats", icon: MessageSquare },
         { name: "Settings", href: "/investor/dashboard/settings", icon: Settings },
