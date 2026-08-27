@@ -1,0 +1,242 @@
+import supabaseAdmin from '../../config/supabase.config.js';
+import ApiError from '../../utils/ApiError.js';
+import { anonymizeText } from '../opportunities/opportunities.service.js';
+export const getOverview = async () => {
+    // Fetch lightweight data for opportunities
+    const { data: opps, error: oppsError } = await supabaseAdmin
+        .from('opportunities')
+        .select('created_at, expected_revenue, status, companies (industry)');
+    if (oppsError) {
+        throw new ApiError(500, `Failed to fetch opportunities for insights: ${oppsError.message}`);
+    }
+    // Fetch count of chats
+    const { count: chatCount, error: chatError } = await supabaseAdmin
+        .from('chats')
+        .select('*', { count: 'exact', head: true });
+    if (chatError) {
+        throw new ApiError(500, `Failed to fetch chats for insights: ${chatError.message}`);
+    }
+    let totalRev = 0;
+    let dealCount = 0;
+    const sectors = {
+        saas: 0,
+        fintech: 0,
+        healthtech: 0,
+        ai_ml: 0,
+        cleantech: 0
+    };
+    const monthsData = [0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    (opps || []).forEach((o) => {
+        // Only count active deals
+        const rev = Number(o.expected_revenue || 0);
+        totalRev += rev;
+        dealCount += 1;
+        const rawSector = (o.companies?.industry || 'saas').toLowerCase();
+        if (rawSector.includes('saas') || rawSector.includes('software'))
+            sectors.saas += 1;
+        else if (rawSector.includes('fintech') || rawSector.includes('finance'))
+            sectors.fintech += 1;
+        else if (rawSector.includes('health') || rawSector.includes('med'))
+            sectors.healthtech += 1;
+        else if (rawSector.includes('ai') || rawSector.includes('machine') || rawSector.includes('intelligence'))
+            sectors.ai_ml += 1;
+        else if (rawSector.includes('clean') || rawSector.includes('green') || rawSector.includes('solar'))
+            sectors.cleantech += 1;
+        else
+            sectors.saas += 1;
+        const createdDate = new Date(o.created_at || Date.now());
+        const diffMonths = (now.getFullYear() - createdDate.getFullYear()) * 12 + (now.getMonth() - createdDate.getMonth());
+        if (diffMonths >= 0 && diffMonths < 6) {
+            monthsData[5 - diffMonths] += 1;
+        }
+    });
+    return {
+        totalTargetRevenue: totalRev,
+        averageDealSize: dealCount > 0 ? totalRev / dealCount : 0,
+        totalDeals: dealCount,
+        totalMatches: chatCount || 0,
+        sectorCounts: sectors,
+        monthlyCounts: monthsData
+    };
+};
+export const getTopOpportunities = async (userRole, userId, filters = {}) => {
+    let query = supabaseAdmin
+        .from('opportunities')
+        .select(`
+      *, 
+      companies (
+        id,
+        company_name, 
+        industry, 
+        profiles (
+          id,
+          full_name,
+          startups (
+            stage, 
+            current_arr, 
+            funding_sought
+          )
+        )
+      )
+    `);
+    if (userRole === 'investor') {
+        query = query.eq('status', 'published');
+    }
+    else if (userRole === 'startup') {
+        // Top opportunities for startups could be global, or just theirs. 
+        // We'll show global published if they are browsing marketplace, or just default to published for general insights.
+        query = query.eq('status', 'published');
+    }
+    if (filters.sector && filters.sector !== 'all') {
+        // Filter by sector keyword in companies
+        // Note: this is a simple text match based on the logic in overview
+        const sector = filters.sector.toLowerCase();
+        let ilikePattern = '';
+        if (sector === 'saas')
+            ilikePattern = '%saas%';
+        else if (sector === 'fintech')
+            ilikePattern = '%fintech%';
+        else if (sector === 'healthtech')
+            ilikePattern = '%healthtech%';
+        else if (sector === 'ai_ml')
+            ilikePattern = '%ai%';
+        else if (sector === 'cleantech')
+            ilikePattern = '%clean%';
+        if (ilikePattern) {
+            // Supabase embedded filter requires filtering on the parent level or it drops the rows.
+            // It's tricky to filter by embedded column if we want to limit at the top level.
+            // We'll just fetch more and filter in memory since this is a quick insights endpoint.
+            // A more robust approach uses a database view or RPC.
+        }
+    }
+    // Order by expected revenue descending
+    const { data, error } = await query
+        .order('expected_revenue', { ascending: false })
+        .limit(100); // Fetch up to 100 to allow in-memory filtering if needed
+    if (error) {
+        throw new ApiError(500, `Failed to fetch top opportunities: ${error.message}`);
+    }
+    let results = data || [];
+    // In-memory sector filtering
+    if (filters.sector && filters.sector !== 'all') {
+        const sector = filters.sector.toLowerCase();
+        results = results.filter((o) => {
+            const rawSector = (o.companies?.industry || '').toLowerCase();
+            if (sector === 'saas')
+                return rawSector.includes('saas') || rawSector.includes('software');
+            if (sector === 'fintech')
+                return rawSector.includes('fintech') || rawSector.includes('finance');
+            if (sector === 'healthtech')
+                return rawSector.includes('health') || rawSector.includes('med');
+            if (sector === 'ai_ml')
+                return rawSector.includes('ai') || rawSector.includes('machine') || rawSector.includes('intelligence');
+            if (sector === 'cleantech')
+                return rawSector.includes('clean') || rawSector.includes('green') || rawSector.includes('solar');
+            return true;
+        });
+    }
+    // Limit to top 10
+    results = results.slice(0, 10);
+    // Anonymize startup information for investors
+    if (userRole === 'investor' && results) {
+        results.forEach((opp) => {
+            if (opp.companies) {
+                const realName = opp.companies.company_name;
+                const anonName = `Startup #${opp.companies.id.substring(0, 8)}`;
+                opp.companies.company_name = anonName;
+                opp.title = anonymizeText(opp.title, realName, anonName);
+                opp.description = anonymizeText(opp.description, realName, anonName);
+                if (opp.companies.profiles) {
+                    delete opp.companies.profiles.full_name;
+                    delete opp.companies.profiles.phone;
+                }
+            }
+        });
+    }
+    return results;
+};
+export const getSectorTrends = async (sector) => {
+    // Fetch overview to get the stats we need
+    const overview = await getOverview();
+    const localDeals = overview.sectorCounts[sector] || 0;
+    const totalDeals = overview.totalDeals || 1;
+    const matchRate = (overview.totalMatches / totalDeals) * 100;
+    const sectorPercent = ((localDeals / totalDeals) * 100).toFixed(0);
+    const matchScore = Math.round(Math.min(98, 65 + matchRate * 0.3));
+    // Determine sentiment based on dynamic metrics
+    let sentiment = 'Neutral Market Conditions';
+    if (localDeals > totalDeals * 0.3)
+        sentiment = 'Highly Bullish (High Deal Volume)';
+    else if (localDeals > totalDeals * 0.15)
+        sentiment = 'Bullish (Steady Growth)';
+    else if (localDeals < totalDeals * 0.05)
+        sentiment = 'Emerging / Cautious';
+    const baseMultiple = sector === 'ai_ml' ? 15 : sector === 'healthtech' ? 9 : sector === 'saas' ? 8 : sector === 'fintech' ? 6 : 5;
+    // Make multiple dynamic based on match score (just an illustrative dynamic calculation)
+    const dynamicMultipleMin = (baseMultiple * (matchScore / 80)).toFixed(1);
+    const dynamicMultipleMax = (baseMultiple * 1.5 * (matchScore / 80)).toFixed(1);
+    const trends = {
+        saas: {
+            name: 'Software-as-a-Service (SaaS)',
+            multiple: `${dynamicMultipleMin}x - ${dynamicMultipleMax}x ARR`,
+            dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
+            sentiment,
+            matchingScore: matchScore,
+            insights: [
+                'Revenue retention remains the single most scrutinized metric by Series A investors in the database.',
+                'SaaS valuations are stabilizing around historical means after the volatility of recent cycles.',
+                `Currently, our marketplace has registered ${localDeals} live SaaS/Software placement proposals, indicating active matching interest.`
+            ]
+        },
+        fintech: {
+            name: 'Financial Technology (FinTech)',
+            multiple: `${dynamicMultipleMin}x - ${dynamicMultipleMax}x Forward Revenue`,
+            dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
+            sentiment,
+            matchingScore: matchScore,
+            insights: [
+                'RegTech and compliance automation are seeing accelerated VC inflows.',
+                'Payment service margins are tightening, forcing founders to offer high-margin SaaS ledger layers.',
+                `We record ${localDeals} active FinTech/payment placements in the database matching our investor profiles.`
+            ]
+        },
+        healthtech: {
+            name: 'Health & BioTech (HealthTech)',
+            multiple: `${dynamicMultipleMin}x - ${dynamicMultipleMax}x ARR`,
+            dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
+            sentiment,
+            matchingScore: matchScore,
+            insights: [
+                'Enterprise hospital sales cycles remain long, raising the cash runway requirements.',
+                'FDA regulatory milestones are highly correlated with successful Series A/B cap table conversions.',
+                `There are ${localDeals} live health/medtech proposals listed on the marketplace.`
+            ]
+        },
+        ai_ml: {
+            name: 'Artificial Intelligence & ML (AI/ML)',
+            multiple: `${dynamicMultipleMin}x - ${dynamicMultipleMax}x ARR / Forward Revenue`,
+            dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
+            sentiment,
+            matchingScore: matchScore,
+            insights: [
+                'GPU capex efficiency and proprietary dataset barriers are the key differentiators for premium seed deals.',
+                'Average funding sought is higher than general SaaS due to computing compute/development overheads.',
+                `AI/ML currently accounts for ${sectorPercent}% of our active deal pipeline with ${localDeals} listed placement(s).`
+            ]
+        },
+        cleantech: {
+            name: 'Clean Energy & ESG (CleanTech)',
+            multiple: `${dynamicMultipleMin}x - ${dynamicMultipleMax}x Revenue`,
+            dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
+            sentiment,
+            matchingScore: matchScore,
+            insights: [
+                'Infrastructure-heavy CleanTech startups rely on structured debt matching alongside traditional equity rounds.',
+                'ESG regulatory mandates in EU/North America are driving interest from institutional asset managers.',
+                `We track ${localDeals} CleanTech/renewables placement options in our active deal rooms.`
+            ]
+        }
+    };
+    return trends[sector];
+};

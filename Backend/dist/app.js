@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { setupSwagger } from './swagger.js';
 import { errorConverter, errorHandler } from './middleware/error.middleware.js';
 import ApiError from './utils/ApiError.js';
+import env from './config/env.config.js';
 const app = express();
 // Initialize Swagger docs
 setupSwagger(app);
@@ -17,7 +18,9 @@ const limiter = rateLimit({
     max: 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.'
 });
-app.use('/api', limiter);
+if (env.NODE_ENV !== 'development' && env.NODE_ENV !== 'test') {
+    app.use('/api', limiter);
+}
 // parse json request body with strict size limits to prevent memory exhaustion
 app.use(express.json({ limit: '10kb' }));
 // parse urlencoded request body with strict size limits
@@ -36,6 +39,7 @@ import opportunitiesRoutes from './api/opportunities/opportunities.routes.js';
 import dealRoomRoutes from './api/deal-room/deal-room.routes.js';
 import adminRoutes from './api/admin/admin.routes.js';
 import chatRoutes from './api/chats/chats.routes.js';
+import insightsRoutes from './api/insights/insights.routes.js';
 // v1 api routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', usersRoutes);
@@ -43,6 +47,7 @@ app.use('/api/v1/opportunities', opportunitiesRoutes);
 app.use('/api/v1/deal-room', dealRoomRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/chats', chatRoutes);
+app.use('/api/v1/insights', insightsRoutes);
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
     next(new ApiError(404, 'Not found'));

@@ -17,7 +17,7 @@ export const registerSchema = {
             funding_sought: z.number().optional(),
             primary_use_of_funds: z.string().optional(),
             previous_funding: z.number().optional(),
-            custom_qa: z.record(z.any()).optional(),
+            custom_qa: z.record(z.string(), z.any()).optional(),
         }).optional(),
     }),
 };

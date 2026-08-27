@@ -1,5 +1,6 @@
 import supabaseAdmin from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
+import { anonymizeText } from '../opportunities/opportunities.service.js';
 // Helper to verify a user owns an opportunity
 const verifyOpportunityOwnership = async (userId, userRole, opportunityId) => {
     if (userRole === 'admin')
@@ -82,6 +83,20 @@ export const listDocuments = async (opportunityId, userRole, userId) => {
         const { data, error } = await query;
         if (error)
             throw new ApiError(500, 'Failed to list documents');
+        if (data && data.length > 0) {
+            const { data: oppCompany } = await supabaseAdmin
+                .from('opportunities')
+                .select('company_id, companies (company_name, id)')
+                .eq('id', opportunityId)
+                .single();
+            if (oppCompany?.companies) {
+                const realName = oppCompany.companies.company_name;
+                const anonName = `Startup #${oppCompany.companies.id.substring(0, 8)}`;
+                data.forEach((doc) => {
+                    doc.file_type = anonymizeText(doc.file_type, realName, anonName);
+                });
+            }
+        }
         return data;
     }
     throw new ApiError(403, 'Unauthorized access to deal room');

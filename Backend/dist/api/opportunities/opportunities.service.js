@@ -1,5 +1,12 @@
 import supabaseAdmin from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
+export const anonymizeText = (text, realName, anonName) => {
+    if (!text || !realName)
+        return text;
+    const escapedName = realName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(escapedName, 'gi');
+    return text.replace(regex, anonName);
+};
 export const createOpportunity = async (userId, data) => {
     // 1. Fetch the user's company (startups must have onboarded to create deals)
     const { data: company, error: companyError } = await supabaseAdmin
@@ -32,9 +39,12 @@ export const listOpportunities = async (userRole, userId, filters = {}) => {
         .select(`
       *, 
       companies (
+        id,
         company_name, 
         industry, 
         profiles (
+          id,
+          full_name,
           startups (
             stage, 
             current_arr, 
@@ -59,6 +69,22 @@ export const listOpportunities = async (userRole, userId, filters = {}) => {
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) {
         throw new ApiError(500, `Failed to fetch opportunities: ${error.message}`);
+    }
+    // Anonymize startup information for investors
+    if (userRole === 'investor' && data) {
+        data.forEach((opp) => {
+            if (opp.companies) {
+                const realName = opp.companies.company_name;
+                const anonName = `Startup #${opp.companies.id.substring(0, 8)}`;
+                opp.companies.company_name = anonName;
+                opp.title = anonymizeText(opp.title, realName, anonName);
+                opp.description = anonymizeText(opp.description, realName, anonName);
+                if (opp.companies.profiles) {
+                    delete opp.companies.profiles.full_name;
+                    delete opp.companies.profiles.phone;
+                }
+            }
+        });
     }
     return data;
 };
@@ -87,6 +113,21 @@ export const getOpportunityById = async (id, userRole, userId) => {
     // Startups can only view their own
     if (userRole === 'startup' && data.created_by !== userId) {
         throw new ApiError(403, 'You do not have permission to view this opportunity');
+    }
+    // Anonymize startup information for investors
+    if (userRole === 'investor' && data) {
+        if (data.companies) {
+            const realName = data.companies.company_name;
+            const anonName = `Startup #${data.companies.id.substring(0, 8)}`;
+            data.companies.company_name = anonName;
+            data.title = anonymizeText(data.title, realName, anonName);
+            data.description = anonymizeText(data.description, realName, anonName);
+            delete data.companies.website;
+            if (data.companies.profiles) {
+                delete data.companies.profiles.full_name;
+                delete data.companies.profiles.phone;
+            }
+        }
     }
     return data;
 };

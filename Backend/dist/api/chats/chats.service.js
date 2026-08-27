@@ -173,8 +173,21 @@ export const listMessages = async (roomId, userId, role) => {
     return messages;
 };
 export const postMessage = async (roomId, senderId, role, message) => {
-    // Check authorization
-    await getChatRoomById(roomId, senderId, role);
+    // Check authorization and get room settings
+    const room = await getChatRoomById(roomId, senderId, role);
+    // Apply moderation rules
+    if (room.status === 'paused' && role !== 'admin') {
+        throw new ApiError(403, 'This conversation is temporarily paused');
+    }
+    if (room.admin_only && role !== 'admin') {
+        throw new ApiError(403, 'This chat is in admin-only mode');
+    }
+    if (room.is_startup_blocked && role === 'startup') {
+        throw new ApiError(403, 'You have been temporarily blocked from messaging in this chat');
+    }
+    if (room.is_investor_blocked && role === 'investor') {
+        throw new ApiError(403, 'You have been temporarily blocked from messaging in this chat');
+    }
     const { data: msg, error } = await supabaseAdmin
         .from('chat_messages')
         .insert({
@@ -188,4 +201,39 @@ export const postMessage = async (roomId, senderId, role, message) => {
         throw new ApiError(500, `Failed to send message: ${error.message}`);
     }
     return msg;
+};
+export const updateChatSettings = async (roomId, adminId, settings) => {
+    // First verify room exists and user is the admin of it
+    const { data: room, error: fetchError } = await supabaseAdmin
+        .from('chat_rooms')
+        .select('admin_id')
+        .eq('id', roomId)
+        .single();
+    if (fetchError || !room) {
+        throw new ApiError(404, 'Chat room not found');
+    }
+    if (room.admin_id !== adminId) {
+        // Only the assigned admin can update settings for their chat room
+        throw new ApiError(403, 'Only the admin of this room can update its settings');
+    }
+    const { data: updatedRoom, error } = await supabaseAdmin
+        .from('chat_rooms')
+        .update(settings)
+        .eq('id', roomId)
+        .select()
+        .single();
+    if (error) {
+        throw new ApiError(500, `Failed to update chat settings: ${error.message}`);
+    }
+    return updatedRoom;
+};
+export const deleteChatMessage = async (messageId) => {
+    const { error } = await supabaseAdmin
+        .from('chat_messages')
+        .delete()
+        .eq('id', messageId);
+    if (error) {
+        throw new ApiError(500, `Failed to delete chat message: ${error.message}`);
+    }
+    return { success: true };
 };

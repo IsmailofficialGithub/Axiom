@@ -148,8 +148,7 @@ export const updateUserProfileDetails = async (userId: string, role: string, dat
       funding_sought: funding_sought !== undefined && funding_sought !== "" ? Number(funding_sought) : null,
       primary_use_of_funds,
       previous_funding: previous_funding !== undefined && previous_funding !== "" ? Number(previous_funding) : null,
-      custom_qa,
-      description
+      custom_qa
     };
 
     if (!existing) {

@@ -8,6 +8,7 @@
     "migrate": "node migrate.js",
     "seed": "node seeds/seed.js",
     "seed:startups": "node seeds/seed_startups.js",
+    "seed:investors": "node seeds/seed_investors.js",
     "setup": "npm run migrate && npm run seed"
   },
   "dependencies": {

@@ -36,70 +36,50 @@ export default function InsightsPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<any | null>(null);
 
+  // Top 10 Opportunities State
+  const [topOpportunities, setTopOpportunities] = useState<any[]>([]);
+  const [topOppLoading, setTopOppLoading] = useState(false);
+  const [topOppSector, setTopOppSector] = useState('all');
+
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      
-      // Load opportunities and chats in parallel
-      const [oppsRes, chatsRes] = await Promise.all([
-        fetchApi('/opportunities').catch(() => ({ data: [] })),
-        fetchApi('/chats').catch(() => ({ data: [] }))
-      ]);
-
-      const opps = oppsRes.data || [];
-      const chats = chatsRes.data || [];
-
-      // Calculate totals
-      let totalRev = 0;
-      let dealCount = 0;
-      const sectors: Record<SectorType, number> = {
-        saas: 0,
-        fintech: 0,
-        healthtech: 0,
-        ai_ml: 0,
-        cleantech: 0
-      };
-
-      // Monthly binning (last 6 months)
-      const monthsData = [0, 0, 0, 0, 0, 0];
-      const now = new Date();
-
-      opps.forEach((o: any) => {
-        const rev = Number(o.expected_revenue || 0);
-        totalRev += rev;
-        dealCount += 1;
-
-        const rawSector = (o.companies?.industry || 'saas').toLowerCase();
-        if (rawSector.includes('saas') || rawSector.includes('software')) sectors.saas += 1;
-        else if (rawSector.includes('fintech') || rawSector.includes('finance')) sectors.fintech += 1;
-        else if (rawSector.includes('health') || rawSector.includes('med')) sectors.healthtech += 1;
-        else if (rawSector.includes('ai') || rawSector.includes('machine') || rawSector.includes('intelligence')) sectors.ai_ml += 1;
-        else if (rawSector.includes('clean') || rawSector.includes('green') || rawSector.includes('solar')) sectors.cleantech += 1;
-        else sectors.saas += 1; // Default fallback
-
-        // Month indexing
-        const createdDate = new Date(o.created_at || Date.now());
-        const diffMonths = (now.getFullYear() - createdDate.getFullYear()) * 12 + (now.getMonth() - createdDate.getMonth());
-        if (diffMonths >= 0 && diffMonths < 6) {
-          monthsData[5 - diffMonths] += 1;
-        }
-      });
-
-      setStats({
-        totalTargetRevenue: totalRev,
-        averageDealSize: dealCount > 0 ? totalRev / dealCount : 0,
-        totalDeals: dealCount,
-        totalMatches: chats.length || 0,
-        sectorCounts: sectors
-      });
-      setMonthlyCounts(monthsData);
+      const res = await fetchApi('/insights/overview');
+      if (res.data) {
+        setStats({
+          totalTargetRevenue: res.data.totalTargetRevenue,
+          averageDealSize: res.data.averageDealSize,
+          totalDeals: res.data.totalDeals,
+          totalMatches: res.data.totalMatches,
+          sectorCounts: res.data.sectorCounts
+        });
+        setMonthlyCounts(res.data.monthlyCounts);
+      }
     } catch (err) {
-      console.error("Failed to compile dashboard metrics", err);
+      console.error("Failed to fetch dashboard metrics", err);
       toast.error("Failed to load dashboard metrics");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const loadTopOpportunities = async () => {
+    try {
+      setTopOppLoading(true);
+      const res = await fetchApi(`/insights/top-opportunities?sector=${topOppSector}`);
+      if (res.data) {
+        setTopOpportunities(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to load top placements", err);
+    } finally {
+      setTopOppLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTopOpportunities();
+  }, [topOppSector]);
 
   useEffect(() => {
     loadDashboardData();
@@ -144,85 +124,20 @@ export default function InsightsPage() {
   const areaPath = `${linePath} L 500 120 L 0 120 Z`;
 
   // AI Advisor Sector Trends Data (integrated with actual marketplace stats)
-  const getSectorTrends = (sector: SectorType) => {
-    const localDeals = stats.sectorCounts[sector];
-    const matchRate = stats.totalDeals > 0 ? (stats.totalMatches / stats.totalDeals) * 100 : 0;
-    const sectorPercent = stats.totalDeals > 0 ? ((localDeals / stats.totalDeals) * 100).toFixed(0) : 0;
-    const matchScore = Math.round(Math.min(98, 65 + matchRate * 0.3));
-
-    const trends: Record<SectorType, any> = {
-      saas: {
-        name: 'Software-as-a-Service (SaaS)',
-        multiple: '8.5x - 11.2x ARR',
-        dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
-        sentiment: 'Bullish on B2B, Neutral on SMB tools',
-        matchingScore: matchScore,
-        insights: [
-          'Revenue retention (NDR > 115%) remains the single most scrutinized metric by Series A investors.',
-          'SaaS valuations are stabilizing around historical means after the volatility of recent cycles.',
-          `Currently, our marketplace has registered ${localDeals} live SaaS/Software placement proposals, indicating active matching interest.`
-        ]
-      },
-      fintech: {
-        name: 'Financial Technology (FinTech)',
-        multiple: '6.2x - 8.9x Forward Revenue',
-        dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
-        sentiment: 'Bullish on embedded finance & infrastructure',
-        matchingScore: matchScore,
-        insights: [
-          'RegTech and compliance automation are seeing accelerated VC inflows due to tightening licensing audits.',
-          'Payment service margins are tightening, forcing founders to offer high-margin SaaS ledger layers.',
-          `We record ${localDeals} active FinTech/payment placements in the database matching our investor profiles.`
-        ]
-      },
-      healthtech: {
-        name: 'Health & BioTech (HealthTech)',
-        multiple: '9.0x - 14.5x ARR',
-        dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
-        sentiment: 'Highly Bullish on AI clinical assistance',
-        matchingScore: matchScore,
-        insights: [
-          'Enterprise hospital sales cycles remain long, raising the cash runway requirements for early-stage teams.',
-          'FDA regulatory milestones are highly correlated with successful Series A/B cap table conversions.',
-          `There are ${localDeals} live health/medtech proposals listed on the marketplace.`
-        ]
-      },
-      ai_ml: {
-        name: 'Artificial Intelligence & ML (AI/ML)',
-        multiple: '15.0x - 22.0x ARR / Forward Revenue',
-        dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
-        sentiment: 'Extremely Bullish on agentic AI applications',
-        matchingScore: matchScore,
-        insights: [
-          'GPU capex efficiency and proprietary dataset barriers are the key differentiators for premium seed deals.',
-          'Average funding sought is 40% higher than general SaaS due to computing compute/development overheads.',
-          `AI/ML currently accounts for ${sectorPercent}% of our active deal pipeline with ${localDeals} listed placement(s).`
-        ]
-      },
-      cleantech: {
-        name: 'Clean Energy & ESG (CleanTech)',
-        multiple: '5.0x - 7.5x Revenue',
-        dealVolume: `${localDeals} active deal(s) (${sectorPercent}% of flow)`,
-        sentiment: 'Bullish on battery storage & grid management',
-        matchingScore: matchScore,
-        insights: [
-          'Infrastructure-heavy CleanTech startups rely on structured debt matching alongside traditional equity rounds.',
-          'ESG regulatory mandates in EU/North America are driving interest from institutional asset managers.',
-          `We track ${localDeals} CleanTech/renewables placement options in our active deal rooms.`
-        ]
-      }
-    };
-
-    return trends[sector];
-  };
-
-  const handleGenerateAdvisorReport = () => {
+  const handleGenerateAdvisorReport = async () => {
     setIsGeneratingReport(true);
-    setTimeout(() => {
-      setGeneratedReport(getSectorTrends(selectedSector));
+    try {
+      const res = await fetchApi(`/insights/sector-trends?sector=${selectedSector}`);
+      if (res.data) {
+        setGeneratedReport(res.data);
+        toast.success("Intelligence report generated!");
+      }
+    } catch (err) {
+      console.error("Failed to generate report", err);
+      toast.error("Failed to generate report");
+    } finally {
       setIsGeneratingReport(false);
-      toast.success("Intelligence report generated!");
-    }, 800);
+    }
   };
 
   const formatCurrency = (val: number) => {
@@ -737,6 +652,68 @@ export default function InsightsPage() {
           </div>
         )}
 
+      </div>
+
+      {/* 5. Top 10 Placements */}
+      <div className="bg-[#141416] border border-[#222222] rounded-xl p-6 space-y-6">
+        <div className="flex items-center justify-between border-b border-[#222222] pb-4">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5 text-[#10B981]" />
+            <div>
+              <h3 className="text-sm font-semibold text-white">Top 10 Placements</h3>
+              <p className="text-[10px] text-slate-500">Highest value expected revenue targets</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <select
+              value={topOppSector}
+              onChange={(e) => setTopOppSector(e.target.value)}
+              className="bg-[#0F0F12] border border-[#222222] text-xs text-slate-300 rounded px-3 py-1.5 focus:outline-none focus:border-[#10B981] cursor-pointer"
+            >
+              <option value="all">All Sectors</option>
+              <option value="saas">SaaS Sector</option>
+              <option value="fintech">FinTech Sector</option>
+              <option value="healthtech">HealthTech Sector</option>
+              <option value="ai_ml">AI / ML Sector</option>
+              <option value="cleantech">CleanTech Sector</option>
+            </select>
+          </div>
+        </div>
+
+        {topOppLoading ? (
+          <div className="flex justify-center py-10">
+            <Activity className="h-6 w-6 text-[#10B981] animate-spin" />
+          </div>
+        ) : topOpportunities.length === 0 ? (
+          <div className="text-center py-10 text-slate-500 border border-dashed border-[#222222] rounded-lg bg-[#0F0F12]/30">
+            <p className="text-[11px]">No top placements found for this sector.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#0F0F12] text-slate-500 border-b border-[#222222]">
+                <tr>
+                  <th className="py-3 px-4 font-semibold uppercase tracking-wider">Rank</th>
+                  <th className="py-3 px-4 font-semibold uppercase tracking-wider">Company</th>
+                  <th className="py-3 px-4 font-semibold uppercase tracking-wider">Sector</th>
+                  <th className="py-3 px-4 font-semibold uppercase tracking-wider text-right">Expected Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#222222]/50">
+                {topOpportunities.map((opp, idx) => (
+                  <tr key={opp.id} className="hover:bg-[#0F0F12]/50 transition-colors">
+                    <td className="py-3 px-4 text-slate-400 font-mono">#{idx + 1}</td>
+                    <td className="py-3 px-4 font-medium text-white">{opp.companies?.company_name || 'Unknown'}</td>
+                    <td className="py-3 px-4 text-slate-400">{opp.companies?.industry || 'N/A'}</td>
+                    <td className="py-3 px-4 text-right font-mono text-[#10B981] font-bold">
+                      {formatCurrency(Number(opp.expected_revenue || 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>

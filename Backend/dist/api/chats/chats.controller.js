@@ -67,3 +67,29 @@ export const postMessage = async (req, res, next) => {
         next(error);
     }
 };
+export const updateSettings = async (req, res, next) => {
+    try {
+        const adminId = req.user.id;
+        const settings = req.body;
+        const room = await chatsService.updateChatSettings(req.params.id, adminId, settings);
+        res.status(200).json({
+            message: 'Chat settings updated successfully',
+            data: room,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+export const deleteMessage = async (req, res, next) => {
+    try {
+        const { messageId } = req.params;
+        await chatsService.deleteChatMessage(messageId);
+        res.status(200).json({
+            message: 'Chat message deleted successfully',
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};

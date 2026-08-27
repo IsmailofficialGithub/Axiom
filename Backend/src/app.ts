@@ -50,6 +50,7 @@ import opportunitiesRoutes from './api/opportunities/opportunities.routes.js';
 import dealRoomRoutes from './api/deal-room/deal-room.routes.js';
 import adminRoutes from './api/admin/admin.routes.js';
 import chatRoutes from './api/chats/chats.routes.js';
+import insightsRoutes from './api/insights/insights.routes.js';
 
 // v1 api routes
 app.use('/api/v1/auth', authRoutes);
@@ -58,6 +59,7 @@ app.use('/api/v1/opportunities', opportunitiesRoutes);
 app.use('/api/v1/deal-room', dealRoomRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/chats', chatRoutes);
+app.use('/api/v1/insights', insightsRoutes);
 
 // send back a 404 error for any unknown api request
 app.use((req: Request, res: Response, next: NextFunction) => {

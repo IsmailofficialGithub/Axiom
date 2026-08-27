@@ -4,11 +4,13 @@ import authenticate from '../../middleware/authenticate.middleware.js';
 import { loginSchema, registerSchema, updateProfileSchema, updatePasswordSchema } from './auth.dto.js';
 import * as authController from './auth.controller.js';
 import rateLimit from 'express-rate-limit';
+import env from '../../config/env.config.js';
 const router = Router();
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Limit each IP to 5 login requests per window
     message: { message: 'Too many login attempts, please try again after 15 minutes' },
+    skip: () => env.NODE_ENV === 'development' || env.NODE_ENV === 'test',
 });
 /**
  * @openapi
