@@ -5,6 +5,77 @@ import { Calculator, TrendingUp, DollarSign, Calendar, Target, Activity, ArrowRi
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
+// Reusable Preset Input Component
+function PresetInput({
+  label,
+  value,
+  onChange,
+  options,
+  formatDisplay,
+  accentColor = "#00D1D1"
+}: {
+  label: string;
+  value: number;
+  onChange: (val: number) => void;
+  options: { label: string; value: number }[];
+  formatDisplay?: (val: number) => string;
+  accentColor?: string;
+}) {
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
+  // If value doesn't match any option, force custom mode
+  useEffect(() => {
+    if (!options.find((opt) => opt.value === value)) {
+      setIsCustomMode(true);
+    }
+  }, [value, options]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-end">
+        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</label>
+        {formatDisplay && (
+          <span style={{ color: accentColor }} className="font-bold font-mono text-sm">
+            {formatDisplay(value)}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <select
+          value={isCustomMode && !options.find((opt) => opt.value === value) ? "custom" : value}
+          onChange={(e) => {
+            if (e.target.value === "custom") {
+              setIsCustomMode(true);
+            } else {
+              setIsCustomMode(false);
+              onChange(Number(e.target.value));
+            }
+          }}
+          className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2.5 focus:outline-none focus:border-[#00D1D1]"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+          <option value="custom">Custom...</option>
+        </select>
+
+        {isCustomMode && (
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2.5 focus:outline-none focus:border-[#00D1D1]"
+            placeholder="Enter custom value"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ROICalculatorPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -108,39 +179,36 @@ export default function ROICalculatorPage() {
 
             <div className="space-y-6 relative z-10">
               
-              {/* Investment Amount */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Investment Amount</label>
-                  <span className="text-[#00D1D1] font-bold font-mono text-lg">{formatCurrency(investmentAmount)}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="50000" 
-                  max="10000000" 
-                  step="50000"
-                  value={investmentAmount}
-                  onChange={(e) => setInvestmentAmount(Number(e.target.value))}
-                  className="w-full accent-[#00D1D1] h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+              <PresetInput
+                label="Investment Amount"
+                value={investmentAmount}
+                onChange={setInvestmentAmount}
+                formatDisplay={formatCurrency}
+                accentColor="#00D1D1"
+                options={[
+                  { label: "$50,000", value: 50000 },
+                  { label: "$100,000", value: 100000 },
+                  { label: "$250,000", value: 250000 },
+                  { label: "$500,000", value: 500000 },
+                  { label: "$1,000,000", value: 1000000 },
+                  { label: "$5,000,000", value: 5000000 },
+                ]}
+              />
 
-              {/* Time Horizon */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Time Horizon</label>
-                  <span className="text-white font-bold font-mono text-lg">{durationYears} Years</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="10" 
-                  step="1"
-                  value={durationYears}
-                  onChange={(e) => setDurationYears(Number(e.target.value))}
-                  className="w-full accent-[#8B5CF6] h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+              <PresetInput
+                label="Time Horizon (Years)"
+                value={durationYears}
+                onChange={setDurationYears}
+                formatDisplay={(v) => `${v} Years`}
+                accentColor="#FFFFFF"
+                options={[
+                  { label: "1 Year", value: 1 },
+                  { label: "3 Years", value: 3 },
+                  { label: "5 Years", value: 5 },
+                  { label: "7 Years", value: 7 },
+                  { label: "10 Years", value: 10 },
+                ]}
+              />
 
               <div className="h-px bg-[#222222] w-full my-4"></div>
 
@@ -149,56 +217,49 @@ export default function ROICalculatorPage() {
                 <span>Company Projections</span>
               </h2>
 
-              {/* Initial Revenue */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Current Revenue (TTM)</label>
-                  <span className="text-white font-bold font-mono text-lg">{formatCurrency(initialRevenue)}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="100000" 
-                  max="20000000" 
-                  step="100000"
-                  value={initialRevenue}
-                  onChange={(e) => setInitialRevenue(Number(e.target.value))}
-                  className="w-full accent-[#F59E0B] h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+              <PresetInput
+                label="Current Revenue (TTM)"
+                value={initialRevenue}
+                onChange={setInitialRevenue}
+                formatDisplay={formatCurrency}
+                accentColor="#F59E0B"
+                options={[
+                  { label: "$100,000 (Pre-Seed / Seed)", value: 100000 },
+                  { label: "$500,000 (Seed)", value: 500000 },
+                  { label: "$1,000,000 (Series A)", value: 1000000 },
+                  { label: "$5,000,000 (Series B)", value: 5000000 },
+                  { label: "$10,000,000 (Series C)", value: 10000000 },
+                ]}
+              />
 
-              {/* Growth Rate */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Expected Annual Growth</label>
-                  <span className="text-emerald-400 font-bold font-mono text-lg">{growthRate}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="5" 
-                  max="200" 
-                  step="5"
-                  value={growthRate}
-                  onChange={(e) => setGrowthRate(Number(e.target.value))}
-                  className="w-full accent-emerald-500 h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+              <PresetInput
+                label="Expected Annual Growth"
+                value={growthRate}
+                onChange={setGrowthRate}
+                formatDisplay={(v) => `${v}%`}
+                accentColor="#10B981"
+                options={[
+                  { label: "Conservative (15%)", value: 15 },
+                  { label: "Moderate (35%)", value: 35 },
+                  { label: "Aggressive (75%)", value: 75 },
+                  { label: "Hyper-Growth (150%)", value: 150 },
+                ]}
+              />
 
-              {/* Exit Multiple */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Revenue Multiple</label>
-                  <span className="text-white font-bold font-mono text-lg">{exitMultiple}x</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="20" 
-                  step="1"
-                  value={exitMultiple}
-                  onChange={(e) => setExitMultiple(Number(e.target.value))}
-                  className="w-full accent-white h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
+              <PresetInput
+                label="Revenue Multiple (Exit)"
+                value={exitMultiple}
+                onChange={setExitMultiple}
+                formatDisplay={(v) => `${v}x`}
+                accentColor="#FFFFFF"
+                options={[
+                  { label: "3x (Traditional)", value: 3 },
+                  { label: "5x (Healthy SaaS)", value: 5 },
+                  { label: "8x (High Growth SaaS)", value: 8 },
+                  { label: "12x (Premium / AI)", value: 12 },
+                  { label: "20x (Unicorn Trajectory)", value: 20 },
+                ]}
+              />
 
             </div>
           </div>
