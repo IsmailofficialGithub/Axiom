@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   ArrowLeft,
-  MessageSquare
+  MessageSquare,
+  Calculator
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: "General", href: "/investor/dashboard", icon: LayoutDashboard },
         { name: "Marketplace", href: "/investor/dashboard/opportunities", icon: Briefcase },
         { name: "Insights", href: "/investor/dashboard/insights", icon: BarChart },
+        { name: "ROI Calculator", href: "/investor/dashboard/calculator", icon: Calculator },
         { name: "Common Area", href: "/investor/dashboard/chats", icon: MessageSquare },
         { name: "Settings", href: "/investor/dashboard/settings", icon: Settings },
       ];
