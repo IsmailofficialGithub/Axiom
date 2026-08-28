@@ -5,73 +5,89 @@ import { Calculator, TrendingUp, DollarSign, Calendar, Target, Activity, ArrowRi
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
-// Reusable Preset Input Component
-function PresetInput({
+// Slider with Editable Value Component
+function SliderWithEditableValue({
   label,
   value,
   onChange,
-  options,
+  min,
+  max,
+  step,
   formatDisplay,
   accentColor = "#00D1D1"
 }: {
   label: string;
   value: number;
   onChange: (val: number) => void;
-  options: { label: string; value: number }[];
-  formatDisplay?: (val: number) => string;
+  min: number;
+  max: number;
+  step: number;
+  formatDisplay: (val: number) => string;
   accentColor?: string;
 }) {
-  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value.toString());
 
-  // If value doesn't match any option, force custom mode
+  // Keep input value in sync when not editing
   useEffect(() => {
-    if (!options.find((opt) => opt.value === value)) {
-      setIsCustomMode(true);
+    if (!isEditing) {
+      setInputValue(value.toString());
     }
-  }, [value, options]);
+  }, [value, isEditing]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    const parsed = Number(inputValue);
+    if (!isNaN(parsed)) {
+      onChange(parsed);
+    } else {
+      setInputValue(value.toString());
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBlur();
+    }
+  };
 
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-end">
         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</label>
-        {formatDisplay && (
-          <span style={{ color: accentColor }} className="font-bold font-mono text-sm">
+        {isEditing ? (
+          <input
+            type="number"
+            autoFocus
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className="w-32 bg-[#222222] border border-[#333333] text-white text-sm rounded px-2 py-1 focus:outline-none text-right font-mono"
+            style={{ borderColor: accentColor }}
+          />
+        ) : (
+          <span 
+            onClick={() => setIsEditing(true)}
+            style={{ color: accentColor }} 
+            className="font-bold font-mono text-lg cursor-pointer hover:opacity-80 transition-opacity"
+            title="Click to edit manually"
+          >
             {formatDisplay(value)}
           </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <select
-          value={isCustomMode && !options.find((opt) => opt.value === value) ? "custom" : value}
-          onChange={(e) => {
-            if (e.target.value === "custom") {
-              setIsCustomMode(true);
-            } else {
-              setIsCustomMode(false);
-              onChange(Number(e.target.value));
-            }
-          }}
-          className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2.5 focus:outline-none focus:border-[#00D1D1]"
-        >
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-          <option value="custom">Custom...</option>
-        </select>
-
-        {isCustomMode && (
-          <input
-            type="number"
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2.5 focus:outline-none focus:border-[#00D1D1]"
-            placeholder="Enter custom value"
-          />
-        )}
-      </div>
+      <input 
+        type="range" 
+        min={min} 
+        max={max} 
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1.5 bg-[#222222] rounded-lg appearance-none cursor-pointer"
+        style={{ accentColor: accentColor }}
+      />
     </div>
   );
 }
@@ -179,35 +195,26 @@ export default function ROICalculatorPage() {
 
             <div className="space-y-6 relative z-10">
               
-              <PresetInput
+              <SliderWithEditableValue
                 label="Investment Amount"
                 value={investmentAmount}
                 onChange={setInvestmentAmount}
                 formatDisplay={formatCurrency}
                 accentColor="#00D1D1"
-                options={[
-                  { label: "$50,000", value: 50000 },
-                  { label: "$100,000", value: 100000 },
-                  { label: "$250,000", value: 250000 },
-                  { label: "$500,000", value: 500000 },
-                  { label: "$1,000,000", value: 1000000 },
-                  { label: "$5,000,000", value: 5000000 },
-                ]}
+                min={50000}
+                max={10000000}
+                step={50000}
               />
 
-              <PresetInput
+              <SliderWithEditableValue
                 label="Time Horizon (Years)"
                 value={durationYears}
                 onChange={setDurationYears}
                 formatDisplay={(v) => `${v} Years`}
                 accentColor="#FFFFFF"
-                options={[
-                  { label: "1 Year", value: 1 },
-                  { label: "3 Years", value: 3 },
-                  { label: "5 Years", value: 5 },
-                  { label: "7 Years", value: 7 },
-                  { label: "10 Years", value: 10 },
-                ]}
+                min={1}
+                max={15}
+                step={1}
               />
 
               <div className="h-px bg-[#222222] w-full my-4"></div>
@@ -217,48 +224,37 @@ export default function ROICalculatorPage() {
                 <span>Company Projections</span>
               </h2>
 
-              <PresetInput
+              <SliderWithEditableValue
                 label="Current Revenue (TTM)"
                 value={initialRevenue}
                 onChange={setInitialRevenue}
                 formatDisplay={formatCurrency}
                 accentColor="#F59E0B"
-                options={[
-                  { label: "$100,000 (Pre-Seed / Seed)", value: 100000 },
-                  { label: "$500,000 (Seed)", value: 500000 },
-                  { label: "$1,000,000 (Series A)", value: 1000000 },
-                  { label: "$5,000,000 (Series B)", value: 5000000 },
-                  { label: "$10,000,000 (Series C)", value: 10000000 },
-                ]}
+                min={100000}
+                max={20000000}
+                step={100000}
               />
 
-              <PresetInput
+              <SliderWithEditableValue
                 label="Expected Annual Growth"
                 value={growthRate}
                 onChange={setGrowthRate}
                 formatDisplay={(v) => `${v}%`}
                 accentColor="#10B981"
-                options={[
-                  { label: "Conservative (15%)", value: 15 },
-                  { label: "Moderate (35%)", value: 35 },
-                  { label: "Aggressive (75%)", value: 75 },
-                  { label: "Hyper-Growth (150%)", value: 150 },
-                ]}
+                min={5}
+                max={200}
+                step={5}
               />
 
-              <PresetInput
+              <SliderWithEditableValue
                 label="Revenue Multiple (Exit)"
                 value={exitMultiple}
                 onChange={setExitMultiple}
                 formatDisplay={(v) => `${v}x`}
                 accentColor="#FFFFFF"
-                options={[
-                  { label: "3x (Traditional)", value: 3 },
-                  { label: "5x (Healthy SaaS)", value: 5 },
-                  { label: "8x (High Growth SaaS)", value: 8 },
-                  { label: "12x (Premium / AI)", value: 12 },
-                  { label: "20x (Unicorn Trajectory)", value: 20 },
-                ]}
+                min={1}
+                max={30}
+                step={1}
               />
 
             </div>
