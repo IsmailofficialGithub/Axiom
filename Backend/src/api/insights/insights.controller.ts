@@ -43,3 +43,21 @@ export const getSectorTrends = async (req: Request, res: Response, next: NextFun
     next(error);
   }
 };
+
+export const getPortfolioInsights = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+    }
+
+    const portfolioData = await insightsService.getPortfolioInsights(userId);
+    
+    res.status(200).json({
+      status: 'success',
+      data: portfolioData
+    });
+  } catch (error) {
+    next(error);
+  }
+};

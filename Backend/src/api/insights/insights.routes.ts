@@ -10,5 +10,6 @@ router.use(authenticate);
 router.get('/overview', insightsController.getOverview);
 router.get('/top-opportunities', insightsController.getTopOpportunities);
 router.get('/sector-trends', insightsController.getSectorTrends);
+router.get('/portfolio', insightsController.getPortfolioInsights);
 
 export default router;
