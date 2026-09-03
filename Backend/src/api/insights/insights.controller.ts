@@ -51,7 +51,8 @@ export const getPortfolioInsights = async (req: Request, res: Response, next: Ne
       return res.status(401).json({ status: 'error', message: 'Unauthorized' });
     }
 
-    const portfolioData = await insightsService.getPortfolioInsights(userId);
+    const dateRange = req.query.dateRange as string | undefined;
+    const portfolioData = await insightsService.getPortfolioInsights(userId, dateRange);
     
     res.status(200).json({
       status: 'success',

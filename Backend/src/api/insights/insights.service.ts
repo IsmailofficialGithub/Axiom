@@ -4,13 +4,30 @@ import { anonymizeText } from '../opportunities/opportunities.service.js';
 
 type SectorType = 'saas' | 'fintech' | 'healthtech' | 'ai_ml' | 'cleantech';
 
-export const getPortfolioInsights = async (userId: string) => {
+export const getPortfolioInsights = async (userId: string, dateRange?: string) => {
   // Fetch investments with valuation history
-  const { data: investments, error: invError } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('portfolio_investments')
     .select('*, valuation_history(*)')
     .eq('investor_profile_id', userId)
     .order('created_at', { ascending: false });
+
+  if (dateRange) {
+    const now = new Date();
+    let startDate = new Date();
+    if (dateRange === 'Last 30 Days') {
+      startDate.setDate(now.getDate() - 30);
+      query = query.gte('created_at', startDate.toISOString());
+    } else if (dateRange === 'Last Quarter') {
+      startDate.setMonth(now.getMonth() - 3);
+      query = query.gte('created_at', startDate.toISOString());
+    } else if (dateRange === 'Year to Date') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      query = query.gte('created_at', startDate.toISOString());
+    }
+  }
+
+  const { data: investments, error: invError } = await query;
 
   if (invError) {
     throw new ApiError(500, `Failed to fetch portfolio investments: ${invError.message}`);
@@ -79,7 +96,7 @@ export const getPortfolioInsights = async (userId: string) => {
       ownershipDilutionChange: 2.1,
       portfolioIRR: portfolioIRR,
       portfolioIRRChange: 3.4,
-      unrealizedGain: unrealizedGain || 48700000, // fallback to match screenshot if no investments
+      unrealizedGain: unrealizedGain,
       unrealizedGainChange: portfolio30DChange,
       activeRaises: 7,
       activeRaisesChange: 2,

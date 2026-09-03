@@ -23,18 +23,39 @@ export default function InsightsPage() {
   const exportPDF = async () => {
     toast.loading("Generating PDF...", { id: "pdf-export" });
     try {
-      // @ts-ignore
-      const html2pdf = (await import('html2pdf.js')).default;
+      const { toPng } = await import('html-to-image');
+      const { jsPDF } = await import('jspdf');
+      
       const element = document.getElementById('report-content');
       if (!element) return;
-      const opt = {
-        margin:       0.3,
-        filename:     'Insights-Report.pdf',
-        image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' as const }
-      };
-      await html2pdf().set(opt).from(element).save();
+
+      const dataUrl = await toPng(element, { 
+        quality: 0.98,
+        pixelRatio: 2,
+        filter: (node: HTMLElement) => {
+          return node?.getAttribute?.('data-html2canvas-ignore') !== 'true';
+        }
+      });
+      
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const margin = 0.3;
+      const innerWidth = pdfWidth - (margin * 2);
+      const innerHeight = pdfHeight - (margin * 2);
+      
+      const ratio = Math.min(innerWidth / imgProps.width, innerHeight / imgProps.height);
+      const imgWidth = imgProps.width * ratio;
+      const imgHeight = imgProps.height * ratio;
+      
+      const x = (pdfWidth - imgWidth) / 2;
+      const y = margin;
+      
+      pdf.addImage(dataUrl, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.save('Insights-Report.pdf');
+      
       toast.success("PDF Downloaded successfully!", { id: "pdf-export" });
     } catch (err) {
       console.error(err);
@@ -46,7 +67,8 @@ export default function InsightsPage() {
     const loadPortfolioData = async () => {
       try {
         setIsLoading(true);
-        const res = await fetchApi('/insights/portfolio');
+        const queryParams = new URLSearchParams({ dateRange }).toString();
+        const res = await fetchApi(`/insights/portfolio?${queryParams}`);
         if (res.data) {
           setData(res.data);
         }
@@ -58,7 +80,7 @@ export default function InsightsPage() {
       }
     };
     loadPortfolioData();
-  }, []);
+  }, [dateRange]);
 
   if (isLoading) {
     return (
