@@ -277,7 +277,7 @@ export default function RegisterPage() {
             </div>
             <h3 className="text-xl font-bold">Startup Application</h3>
           </div>
-          <button onClick={() => {setRole(null); setCurrentStep(1);}} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
+          <button type="button" onClick={() => {setRole(null); setCurrentStep(1);}} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
             Change Role
           </button>
         </div>
@@ -295,7 +295,14 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <form onSubmit={startupForm.handleSubmit(onStartupSubmit)} className="space-y-6">
+        <form onSubmit={(e) => {
+          if (currentStep < totalSteps) {
+            e.preventDefault();
+            handleNextStep();
+            return;
+          }
+          startupForm.handleSubmit(onStartupSubmit)(e);
+        }} className="space-y-6">
           
           {/* STEP 1 */}
           <div className={currentStep === 1 ? "block animate-in fade-in duration-300" : "hidden"}>
@@ -557,7 +564,7 @@ export default function RegisterPage() {
           </div>
           <h3 className="text-xl font-bold">Investor Registration</h3>
         </div>
-        <button onClick={() => setRole(null)} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
+        <button type="button" onClick={() => setRole(null)} className="text-sm font-medium text-slate-500 hover:text-[var(--color-brand-emerald)] transition-colors">
           Change Role
         </button>
       </div>

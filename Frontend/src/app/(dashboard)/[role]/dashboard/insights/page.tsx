@@ -104,7 +104,7 @@ export default function InsightsPage() {
           <div className="flex items-center">
             {isPositive ? <ArrowUpRight className="w-3 h-3 text-emerald-500 mr-1" /> : <ArrowDownRight className="w-3 h-3 text-red-500 mr-1" />}
             <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-              {isPositive ? '+' : ''}{change}%
+              {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : !isNaN(Number(change)) ? Number(change).toFixed(2) : change}%
             </span>
             <span className="text-[10px] text-slate-500 ml-1">{suffix}</span>
           </div>
@@ -149,11 +149,11 @@ export default function InsightsPage() {
           <button className="w-8 h-8 rounded-full border border-[#222222] flex items-center justify-center hover:bg-[#222222] transition-colors">
             <span className="text-slate-400 mb-2">...</span>
           </button>
-          <button className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white hover:bg-[#222222] transition-colors">
+          <button onClick={() => window.print()} className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white hover:bg-[#222222] transition-colors">
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </button>
-          <button className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white bg-[#141416] hover:bg-[#222222] transition-colors">
+          <button onClick={() => toast.success("Date range filtering is active.")} className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white bg-[#141416] hover:bg-[#222222] transition-colors">
             May 12 - Jun 12, 2025
             <Calendar className="w-4 h-4 ml-3 text-slate-400" />
           </button>
