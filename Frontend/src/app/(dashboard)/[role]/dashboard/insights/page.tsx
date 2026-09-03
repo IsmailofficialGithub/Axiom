@@ -18,6 +18,28 @@ export default function InsightsPage() {
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState("May 12 - Jun 12, 2025");
+
+  const exportPDF = async () => {
+    toast.loading("Generating PDF...", { id: "pdf-export" });
+    try {
+      // @ts-ignore
+      const html2pdf = (await import('html2pdf.js')).default;
+      const element = document.getElementById('report-content');
+      const opt = {
+        margin:       0.3,
+        filename:     'Insights-Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+      };
+      await html2pdf().set(opt).from(element).save();
+      toast.success("PDF Downloaded successfully!", { id: "pdf-export" });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF", { id: "pdf-export" });
+    }
+  };
 
   useEffect(() => {
     const loadPortfolioData = async () => {
@@ -135,28 +157,31 @@ export default function InsightsPage() {
   ];
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 font-sans bg-[#0F0F12] text-slate-300 min-h-screen">
+    <div id="report-content" className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 font-sans bg-[#0F0F12] text-slate-300 min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-xl font-bold text-white mb-1">Portfolio & Share Value Insights</h1>
           <p className="text-slate-400 text-sm">Real-time ownership analytics, valuation trends, and portfolio performance.</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="w-8 h-8 rounded-full border border-[#222222] flex items-center justify-center hover:bg-[#222222] transition-colors">
-            <Info className="w-4 h-4 text-slate-400" />
-          </button>
-          <button className="w-8 h-8 rounded-full border border-[#222222] flex items-center justify-center hover:bg-[#222222] transition-colors">
-            <span className="text-slate-400 mb-2">...</span>
-          </button>
-          <button onClick={() => window.print()} className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white hover:bg-[#222222] transition-colors">
+        <div className="flex items-center space-x-3" data-html2canvas-ignore="true">
+          <button onClick={exportPDF} className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white hover:bg-[#222222] transition-colors">
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </button>
-          <button onClick={() => toast.success("Date range filtering is active.")} className="flex items-center px-4 py-2 border border-[#222222] rounded-lg text-sm text-white bg-[#141416] hover:bg-[#222222] transition-colors">
-            May 12 - Jun 12, 2025
-            <Calendar className="w-4 h-4 ml-3 text-slate-400" />
-          </button>
+          <div className="relative">
+            <select
+              className="appearance-none bg-[#141416] border border-[#222222] text-white text-sm rounded-lg pl-4 pr-10 py-2 hover:bg-[#222222] transition-colors cursor-pointer outline-none focus:border-[#00D1D1]"
+              value={dateRange}
+              onChange={(e) => { setDateRange(e.target.value); toast.success("Date range filtering is active."); }}
+            >
+              <option value="May 12 - Jun 12, 2025">May 12 - Jun 12, 2025</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+              <option value="Last Quarter">Last Quarter</option>
+              <option value="Year to Date">Year to Date</option>
+            </select>
+            <Calendar className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 
