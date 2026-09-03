@@ -26,12 +26,13 @@ export default function InsightsPage() {
       // @ts-ignore
       const html2pdf = (await import('html2pdf.js')).default;
       const element = document.getElementById('report-content');
+      if (!element) return;
       const opt = {
         margin:       0.3,
         filename:     'Insights-Report.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg' as const, quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' as const }
       };
       await html2pdf().set(opt).from(element).save();
       toast.success("PDF Downloaded successfully!", { id: "pdf-export" });
