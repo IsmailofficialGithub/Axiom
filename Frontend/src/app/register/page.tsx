@@ -295,14 +295,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <form onSubmit={(e) => {
-          if (currentStep < totalSteps) {
-            e.preventDefault();
-            handleNextStep();
-            return;
-          }
-          startupForm.handleSubmit(onStartupSubmit)(e);
-        }} className="space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
           
           {/* STEP 1 */}
           <div className={currentStep === 1 ? "block animate-in fade-in duration-300" : "hidden"}>
@@ -544,7 +537,7 @@ export default function RegisterPage() {
                 Continue
               </button>
             ) : (
-              <button disabled={isSubmitting} type="submit" className="px-6 py-2 bg-[var(--color-brand-emerald)] text-white text-sm font-medium rounded-md hover:bg-[var(--color-brand-emerald-hover)] transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center">
+              <button type="button" onClick={startupForm.handleSubmit(onStartupSubmit)} disabled={isSubmitting} className="px-6 py-2 bg-[var(--color-brand-emerald)] text-white text-sm font-medium rounded-md hover:bg-[var(--color-brand-emerald-hover)] transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center">
                 {isSubmitting ? "Submitting..." : <><CheckCircle2 className="w-4 h-4 mr-2" /> Submit Application</>}
               </button>
             )}
@@ -569,7 +562,7 @@ export default function RegisterPage() {
         </button>
       </div>
 
-      <form onSubmit={investorForm.handleSubmit(onInvestorSubmit)} className="space-y-6">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-1">Full Name <span className="text-red-500">*</span></label>
@@ -626,7 +619,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <button disabled={isSubmitting} type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--color-brand-emerald)] hover:bg-[var(--color-brand-emerald-hover)] transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+        <button type="button" onClick={investorForm.handleSubmit(onInvestorSubmit)} disabled={isSubmitting} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--color-brand-emerald)] hover:bg-[var(--color-brand-emerald-hover)] transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
           {isSubmitting ? "Registering..." : "Complete Registration"}
         </button>
       </form>
