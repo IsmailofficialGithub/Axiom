@@ -8,6 +8,18 @@ export const register = async (req, res, next) => {
         next(error);
     }
 };
+export const checkEmail = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email)
+            return res.status(400).json({ error: 'Email is required' });
+        const exists = await authService.checkEmailExists(email);
+        res.status(200).json({ exists });
+    }
+    catch (error) {
+        next(error);
+    }
+};
 export const login = async (req, res, next) => {
     try {
         const result = await authService.loginUser(req.body);

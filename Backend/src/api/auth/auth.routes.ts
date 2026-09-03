@@ -51,6 +51,29 @@ router.post('/register', validate(registerSchema), authController.register);
 
 /**
  * @openapi
+ * /api/v1/auth/check-email:
+ *   post:
+ *     summary: Check if an email already exists
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Returns whether the email exists
+ */
+router.post('/check-email', authController.checkEmail);
+
+/**
+ * @openapi
  * /api/v1/auth/login:
  *   post:
  *     summary: Login a user

@@ -54,6 +54,14 @@ export const registerUser = async (data) => {
         message: 'User registered successfully. Proceed to login.',
     };
 };
+export const checkEmailExists = async (email) => {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error) {
+        throw new ApiError(500, `Failed to check email: ${error.message}`);
+    }
+    const exists = data.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
+    return exists;
+};
 export const loginUser = async (data) => {
     const { email, password } = data;
     // 1. Attempt login via Supabase Auth

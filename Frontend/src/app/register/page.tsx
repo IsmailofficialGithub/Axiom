@@ -219,9 +219,27 @@ export default function RegisterPage() {
     }
 
     const isValid = await startupForm.trigger(fieldsToValidate);
-    if (isValid) {
-      setCurrentStep(prev => prev + 1);
+    if (!isValid) return;
+
+    if (currentStep === 1) {
+      const email = startupForm.getValues("email");
+      try {
+        const res = await fetch(`${API_URL}/auth/check-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.exists) {
+          startupForm.setError("email", { type: "manual", message: "User with this email already exists" });
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking email", err);
+      }
     }
+
+    setCurrentStep(prev => prev + 1);
   };
 
   const handlePrevStep = () => setCurrentStep(prev => prev - 1);

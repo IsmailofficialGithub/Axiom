@@ -10,6 +10,17 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+export const checkEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const exists = await authService.checkEmailExists(email);
+    res.status(200).json({ exists });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await authService.loginUser(req.body);

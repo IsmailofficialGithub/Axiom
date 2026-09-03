@@ -96,8 +96,8 @@ export default function UserDetailPage() {
     );
   }
 
-  const startup = user.startups?.[0];
-  const investor = user.investors?.[0];
+  const startup = Array.isArray(user.startups) ? user.startups[0] : user.startups;
+  const investor = Array.isArray(user.investors) ? user.investors[0] : user.investors;
 
   const tabs = [
     { id: 'identity', label: 'Identity', icon: User },

@@ -64,6 +64,15 @@ export const registerUser = async (data: any) => {
   };
 };
 
+export const checkEmailExists = async (email: string) => {
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+  if (error) {
+    throw new ApiError(500, `Failed to check email: ${error.message}`);
+  }
+  const exists = data.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
+  return exists;
+};
+
 export const loginUser = async (data: any) => {
   const { email, password } = data;
 
