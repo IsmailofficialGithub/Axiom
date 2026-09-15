@@ -229,7 +229,13 @@ export default function UsersPage() {
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
           </div>
           <button 
-            onClick={() => setCreateModal({ isOpen: true, step: 1 })}
+            onClick={() => {
+              setCreateForm(prev => ({
+                ...prev, 
+                role: roleFilter !== 'all' ? roleFilter : 'member'
+              }));
+              setCreateModal({ isOpen: true, step: 1 });
+            }}
             className="bg-[#1E90FF] hover:bg-[#1C86EE] text-white text-sm font-medium rounded-md px-4 py-1.5 transition-colors"
           >
             Add member
@@ -415,7 +421,7 @@ export default function UsersPage() {
                     <label className="block text-xs font-medium text-slate-400 mb-1">Select Role</label>
                     <select 
                       value={createForm.role}
-                      onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
+                      onChange={(e) => setCreateForm(prev => ({...prev, role: e.target.value}))}
                       className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]"
                     >
                       <option value="member">Standard Member</option>
@@ -426,15 +432,15 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
-                    <input type="text" required value={createForm.full_name} onChange={(e) => setCreateForm({...createForm, full_name: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                    <input type="text" required value={createForm.full_name} onChange={(e) => setCreateForm(prev => ({...prev, full_name: e.target.value}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
-                    <input type="email" required value={createForm.email} onChange={(e) => setCreateForm({...createForm, email: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                    <input type="email" required value={createForm.email} onChange={(e) => setCreateForm(prev => ({...prev, email: e.target.value}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Temporary Password</label>
-                    <input type="password" required minLength={6} value={createForm.password} onChange={(e) => setCreateForm({...createForm, password: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                    <input type="password" required minLength={6} value={createForm.password} onChange={(e) => setCreateForm(prev => ({...prev, password: e.target.value}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
                   </div>
 
                   <div className="pt-4 flex justify-end space-x-3 border-t border-[#222222]">
@@ -456,7 +462,7 @@ export default function UsersPage() {
                 <>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Industry / Sector</label>
-                    <select required value={createForm.industry} onChange={(e) => setCreateForm({...createForm, industry: e.target.value})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]">
+                    <select required value={createForm.industry} onChange={(e) => setCreateForm(prev => ({...prev, industry: e.target.value}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]">
                       <option value="" disabled>Select an industry...</option>
                       <option value="fintech">FinTech</option>
                       <option value="healthtech">HealthTech</option>
@@ -467,11 +473,11 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Current ARR ($)</label>
-                    <input type="number" required min="0" value={createForm.current_arr} onChange={(e) => setCreateForm({...createForm, current_arr: Number(e.target.value)})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                    <input type="number" required min="0" value={createForm.current_arr} onChange={(e) => setCreateForm(prev => ({...prev, current_arr: Number(e.target.value)}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Funding Sought ($)</label>
-                    <input type="number" required min="0" value={createForm.funding_sought} onChange={(e) => setCreateForm({...createForm, funding_sought: Number(e.target.value)})} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
+                    <input type="number" required min="0" value={createForm.funding_sought} onChange={(e) => setCreateForm(prev => ({...prev, funding_sought: Number(e.target.value)}))} className="w-full bg-[#0F0F12] border border-[#222222] text-slate-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-[#1E90FF]" />
                   </div>
 
                   <div className="pt-4 flex justify-end space-x-3 border-t border-[#222222]">
