@@ -6,39 +6,57 @@ export const listAllUsers = async (filters: { search?: string; role?: string } =
   let authUsersList: any[] = [];
   const searchLower = filters.search?.toLowerCase();
 
-  try {
-    const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    if (!authError && authUsers) {
-      authUsersList = authUsers;
-      if (searchLower) {
-        matchedUserIds = authUsers.filter(u => u.email?.toLowerCase().includes(searchLower)).map(u => u.id);
+  const fetchAuthUsers = async () => {
+    try {
+      const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+      if (!authError && authUsers) {
+        authUsersList = authUsers;
+        if (searchLower) {
+          matchedUserIds = authUsers.filter(u => u.email?.toLowerCase().includes(searchLower)).map(u => u.id);
+        }
       }
+    } catch (err) {
+      console.error("Failed to fetch auth emails", err);
     }
-  } catch (err) {
-    console.error("Failed to fetch auth emails", err);
-  }
+  };
 
-  let query = supabaseAdmin
+  let profilesQuery = supabaseAdmin
     .from('profiles')
     .select('*, startups(*), investors(*)')
     .order('created_at', { ascending: false });
 
   if (filters.role && filters.role !== 'all') {
-    query = query.eq('role', filters.role);
+    profilesQuery = profilesQuery.eq('role', filters.role);
   }
+
+  let profiles: any[] = [];
+  let profilesError: any = null;
 
   if (filters.search) {
+    // Sequential needed to filter IDs
+    await fetchAuthUsers();
+    
     if (matchedUserIds.length > 0) {
-      query = query.or(`full_name.ilike.%${filters.search}%,id.in.(${matchedUserIds.join(',')})`);
+      profilesQuery = profilesQuery.or(`full_name.ilike.%${filters.search}%,id.in.(${matchedUserIds.join(',')})`);
     } else {
-      query = query.ilike('full_name', `%${filters.search}%`);
+      profilesQuery = profilesQuery.ilike('full_name', `%${filters.search}%`);
     }
+    
+    const res = await profilesQuery;
+    profiles = res.data || [];
+    profilesError = res.error;
+  } else {
+    // Parallel execution for max speed on initial load
+    const [authRes, profilesRes] = await Promise.all([
+      fetchAuthUsers(),
+      profilesQuery
+    ]);
+    profiles = profilesRes.data || [];
+    profilesError = profilesRes.error;
   }
 
-  const { data: profiles, error } = await query;
-
-  if (error) {
-    throw new ApiError(500, `Failed to fetch users: ${error.message}`);
+  if (profilesError) {
+    throw new ApiError(500, `Failed to fetch users: ${profilesError.message}`);
   }
 
   const emailMap = new Map(authUsersList.map(u => [u.id, u.email]));
@@ -49,29 +67,23 @@ export const listAllUsers = async (filters: { search?: string; role?: string } =
 };
 
 export const getUserById = async (id: string) => {
-  const { data: profile, error } = await supabaseAdmin
-    .from('profiles')
-    .select('*, startups(*), investors(*)')
-    .eq('id', id)
-    .single();
+  const [profileRes, authRes] = await Promise.all([
+    supabaseAdmin
+      .from('profiles')
+      .select('*, startups(*), investors(*)')
+      .eq('id', id)
+      .single(),
+    supabaseAdmin.auth.admin.getUserById(id).catch(() => ({ data: { user: null }, error: null }))
+  ]);
 
-  if (error) {
-    throw new ApiError(500, `Failed to fetch user: ${error.message}`);
+  if (profileRes.error) {
+    throw new ApiError(500, `Failed to fetch user: ${profileRes.error.message}`);
   }
 
-  try {
-    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(id);
-    if (!authError && authUser) {
-      return {
-        ...profile,
-        email: authUser.email
-      };
-    }
-  } catch (err) {
-    console.error("Failed to fetch auth user email", err);
-  }
-
-  return profile;
+  return {
+    ...profileRes.data,
+    email: authRes.data?.user?.email || null
+  };
 };
 
 export const impersonateUser = async (id: string) => {
