@@ -193,11 +193,19 @@ export const createUser = async (data: any) => {
     throw new ApiError(500, `Failed to create user: ${authError?.message}`);
   }
 
-  // 2. The trigger creates the profile, but we want to immediately update the status and role if it defaults differently
-  await supabaseAdmin
+  // 2. Ensure profile exists (in case trigger is missing or delayed) and sync data
+  const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .update({ status: data.status, role: data.role })
-    .eq('id', authData.user.id);
+    .upsert({ 
+      id: authData.user.id,
+      full_name: data.full_name,
+      role: data.role,
+      status: data.status
+    });
+
+  if (profileError) {
+    throw new ApiError(500, `Auth user created, but failed to sync profile: ${profileError.message}`);
+  }
 
   // 3. If role is startup, insert startup specifics
   if (data.role === 'startup') {
