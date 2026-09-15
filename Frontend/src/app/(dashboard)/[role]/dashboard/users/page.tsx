@@ -41,7 +41,11 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true);
-      const res = await fetchApi('/admin/users');
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (roleFilter && roleFilter !== 'all') params.append('role', roleFilter);
+
+      const res = await fetchApi(`/admin/users?${params.toString()}`);
       setUsers(res.data);
     } catch (err) {
       console.error("Failed to load users", err);
@@ -51,19 +55,19 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      loadUsers();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, roleFilter]);
 
-  // Apply Search and Filters
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
-
-  const activeMembers = filteredUsers.filter(u => u.status !== 'pending');
-  const pendingInvites = filteredUsers.filter(u => u.status === 'pending');
+  const activeMembers = users
+    .filter(u => u.status !== 'pending')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+  const pendingInvites = users
+    .filter(u => u.status === 'pending')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   // Reset pagination when filters change
   useEffect(() => {

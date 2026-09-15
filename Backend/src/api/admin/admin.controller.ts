@@ -3,7 +3,9 @@ import * as adminService from './admin.service.js';
 
 export const listUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await adminService.listAllUsers();
+    const search = req.query.search as string | undefined;
+    const role = req.query.role as string | undefined;
+    const users = await adminService.listAllUsers({ search, role });
     res.status(200).json({ data: users });
   } catch (error) {
     next(error);

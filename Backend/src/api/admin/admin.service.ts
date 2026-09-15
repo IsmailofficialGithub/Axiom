@@ -1,30 +1,51 @@
 import supabaseAdmin, { supabaseAuth } from '../../config/supabase.config.js';
 import ApiError from '../../utils/ApiError.js';
 
-export const listAllUsers = async () => {
-  const { data: profiles, error } = await supabaseAdmin
-    .from('profiles')
-    .select('*, startups(*), investors(*)')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    throw new ApiError(500, `Failed to fetch users: ${error.message}`);
-  }
+export const listAllUsers = async (filters: { search?: string; role?: string } = {}) => {
+  let matchedUserIds: string[] = [];
+  let authUsersList: any[] = [];
+  const searchLower = filters.search?.toLowerCase();
 
   try {
     const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     if (!authError && authUsers) {
-      const emailMap = new Map(authUsers.map(u => [u.id, u.email]));
-      return profiles.map(profile => ({
-        ...profile,
-        email: emailMap.get(profile.id) || null
-      }));
+      authUsersList = authUsers;
+      if (searchLower) {
+        matchedUserIds = authUsers.filter(u => u.email?.toLowerCase().includes(searchLower)).map(u => u.id);
+      }
     }
   } catch (err) {
     console.error("Failed to fetch auth emails", err);
   }
 
-  return profiles;
+  let query = supabaseAdmin
+    .from('profiles')
+    .select('*, startups(*), investors(*)')
+    .order('created_at', { ascending: false });
+
+  if (filters.role && filters.role !== 'all') {
+    query = query.eq('role', filters.role);
+  }
+
+  if (filters.search) {
+    if (matchedUserIds.length > 0) {
+      query = query.or(`full_name.ilike.%${filters.search}%,id.in.(${matchedUserIds.join(',')})`);
+    } else {
+      query = query.ilike('full_name', `%${filters.search}%`);
+    }
+  }
+
+  const { data: profiles, error } = await query;
+
+  if (error) {
+    throw new ApiError(500, `Failed to fetch users: ${error.message}`);
+  }
+
+  const emailMap = new Map(authUsersList.map(u => [u.id, u.email]));
+  return profiles.map(profile => ({
+    ...profile,
+    email: emailMap.get(profile.id) || null
+  }));
 };
 
 export const getUserById = async (id: string) => {
